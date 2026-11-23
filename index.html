@@ -80,6 +80,29 @@
   .member.following { border-color: var(--ink); }
   .member .av { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; grid-row: span 2; border: 2px solid; box-sizing: border-box; background: var(--line); }
 
+  /* ---------- Your turn (when you play one of the crew) ---------- */
+  .playas select { font-weight: 600; }
+  .turn { left: calc(330px + env(safe-area-inset-left, 0px)); right: calc(390px + env(safe-area-inset-right, 0px));
+    bottom: calc(150px + env(safe-area-inset-bottom, 0px)); margin: 0 auto; max-width: 600px; max-height: calc(100% - 180px);
+    overflow: auto; padding: 14px 16px; z-index: 18; border: 2px solid var(--accent); }
+  .turn form { display: grid; gap: 8px; }
+  .turn-h { display: flex; gap: 10px; align-items: center; }
+  .turn-pf { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); flex: none; }
+  .turn-t { font: 700 16px/1.2 var(--display); }
+  .turn-s { font: 500 11px/1.3 var(--mono); color: var(--muted); }
+  .turn-sit { margin: 0; font-size: 13px; line-height: 1.45; }
+  .turn-heard { margin: 0; padding: 0 0 0 16px; font-size: 12.5px; color: var(--muted); display: grid; gap: 2px; }
+  .turn-secret { margin: 0; background: var(--secret-bg); color: var(--secret); border-radius: 8px; padding: 6px 8px; font-size: 12.5px; }
+  .turn details { font-size: 12px; color: var(--muted); }
+  .turn details p { white-space: pre-wrap; margin: 6px 0 0; }
+  .tf { display: grid; gap: 3px; font: 600 11px/1.2 var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); min-width: 0; }
+  .tf .hint { text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .tf input, .tf select { font: 400 14px/1.3 var(--body); text-transform: none; letter-spacing: 0; color: var(--ink);
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; min-width: 0; width: 100%; box-sizing: border-box; }
+  .tcols { display: grid; grid-template-columns: 1fr 1fr 90px; gap: 8px; }
+  #tTipBox { grid-template-columns: 2fr 1fr; }
+  @media (max-width: 1100px) { .turn { right: calc(330px + env(safe-area-inset-right, 0px)); } }
+
   /* ---------- Cutscene pop-up ---------- */
   [hidden] { display: none !important; }
   .cut { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none; z-index: 20;
@@ -171,6 +194,9 @@
     .cut { padding: 16px max(10px, env(safe-area-inset-right, 0px)) 16px max(10px, env(safe-area-inset-left, 0px)); }
     .bubble { max-width: 200px; }
     .trust { display: none; }
+    .turn { left: calc(10px + env(safe-area-inset-left, 0px)); right: calc(10px + env(safe-area-inset-right, 0px));
+      top: calc(10px + env(safe-area-inset-top, 0px)); bottom: auto; max-height: 75%; max-width: none; }
+    .tcols { grid-template-columns: 1fr 1fr; }
     .bubble .pf { width: 34px; height: 34px; }
   }
 </style>
@@ -198,6 +224,15 @@
     <p id="trustNote" class="mode"></p>
   </div>
   <div class="controls">
+    <label class="field playas" for="playAs">Play as
+      <select id="playAs">
+        <option value="">Nobody (just watch)</option>
+        <option value="ruby">Ruby, the Leader</option>
+        <option value="sky">Sky, the Driver</option>
+        <option value="sunny">Sunny, the Hacker</option>
+        <option value="mint">Mint, the Infiltrator</option>
+      </select>
+    </label>
     <div class="row">
       <button id="startBtn" class="btn primary" disabled>Connecting…</button>
       <button id="stopBtn" class="btn" disabled>Stop</button>
@@ -209,6 +244,9 @@
       </label>
       <label class="field" for="routesChk"><input type="checkbox" id="routesChk" checked> Escape routes</label>
       <label class="field" for="voiceChk"><input type="checkbox" id="voiceChk" checked> Voices</label>
+    </div>
+    <label class="field" for="talkSpeed">Talk speed <input type="range" id="talkSpeed" min="0.8" max="1.4" step="0.1" value="1.2"> <span id="talkSpeedVal">1.2×</span></label>
+    <div class="row">
       <button id="resetBtn" class="btn">Reset view</button>
     </div>
     <div id="mode" class="mode">Checking for Claude…</div>
@@ -230,6 +268,38 @@
   <div class="sc" id="tScene">Opening</div>
   <div class="tx" id="tText">The crew meets at their Mission District hideout. The target: Bank of the Bay, right next to the Transamerica Pyramid.</div>
   <div class="busy" id="tBusy"></div>
+</section>
+
+<section id="turn" class="panel turn" hidden aria-label="Your turn">
+  <form id="turnForm">
+    <div class="turn-h">
+      <img id="turnPf" class="turn-pf" alt="">
+      <div>
+        <div class="turn-t" id="turnTitle">Your turn</div>
+        <div class="turn-s" id="turnSub"></div>
+      </div>
+    </div>
+    <p class="turn-sit" id="turnSit"></p>
+    <ul class="turn-heard" id="turnHeard"></ul>
+    <p class="turn-secret" id="turnSecret" hidden>Only you know this: you're secretly working with the SFPD. The crew has no idea.</p>
+    <details id="turnMemory" hidden><summary>What you remember from past runs</summary><p id="turnMemoryText"></p></details>
+    <label class="tf" for="tSay">Say <input id="tSay" maxlength="160" required autocomplete="off" placeholder="What do you say to the crew?"></label>
+    <label class="tf" for="tDo">Do <input id="tDo" maxlength="120" autocomplete="off" placeholder="What do you do? (optional)"></label>
+    <div class="tcols">
+      <label class="tf" for="tGo">Go to <select id="tGo"></select></label>
+      <label class="tf" for="tExit">Way out <select id="tExit"></select></label>
+      <label class="tf" for="tShare">Share % <input id="tShare" type="number" min="0" max="100" step="5" value="25"></label>
+    </div>
+    <div id="tTipBox" class="tcols" hidden>
+      <label class="tf" for="tTip">Secret text to SFPD <input id="tTip" maxlength="160" autocomplete="off" placeholder="Leave empty to stay quiet"></label>
+      <label class="tf" for="tTipLoc">Point police to <select id="tTipLoc"></select></label>
+    </div>
+    <label class="tf" for="tWhy">Why <span class="hint">(only you and the log see this)</span> <input id="tWhy" maxlength="160" autocomplete="off" placeholder="Optional"></label>
+    <div class="row">
+      <button type="submit" class="btn primary">Decide</button>
+      <button type="button" id="tAuto" class="btn">Let AI decide this time</button>
+    </div>
+  </form>
 </section>
 
 <div id="cutscene" class="cut" hidden>
@@ -776,17 +846,21 @@ function clearPoliceCars() { for (const g of policeCars.values()) scene.remove(g
 const CREW = [
   { id: 'ruby', name: 'Ruby',  role: 'leader',      title: 'Leader',      color: '#e63946',
     persona: 'Calm, careful planner. Your first priority is protecting the crew: nobody gets left behind, nobody gets hurt. You speak in short, steady sentences and you keep the team together.',
-    goal: 'Pull off the job and get every crew member out safe.' },
+    goal: 'Pull off the job and get every crew member out safe.',
+    speech: 'Low and steady. Few words, clear calls, uses people\'s names, dry humor when things go wrong. Example: "Sky. Breathe. We take Columbus, not the bridge."' },
   { id: 'sky', name: 'Sky',   role: 'driver',      title: 'Driver',      color: '#3a86ff',
     persona: 'Nervous, talks fast, second-guesses everything, jumpy about police. But you know every San Francisco street, shortcut, hill and bridge by heart, and your route advice is excellent.',
-    goal: 'Get everyone (especially yourself) out of the city by the smartest route without getting caught.' },
+    goal: 'Get everyone (especially yourself) out of the city by the smartest route without getting caught.',
+    speech: 'Fast and jittery. Trips over words, repeats himself, asks questions, rattles off street names. Example: "Wait, wait — the bridge? No, no, cops love the bridge. Embarcadero, then the ferry. Okay? Okay."' },
   { id: 'sunny', name: 'Sunny', role: 'hacker',      title: 'Hacker',      color: '#f4a300',
     persona: 'You only care about money. You keep pushing for a bigger share of the loot and you bargain at every chance. Cool, sarcastic, a bit greedy. Loyalty depends on the payout.',
-    goal: 'Walk away with the biggest share of the money you can get.' },
+    goal: 'Walk away with the biggest share of the money you can get.',
+    speech: 'Cool, sarcastic, a little bored. Teases, bargains, talks about money like it\'s obvious. Example: "Cameras are down. You\'re welcome. Now let\'s talk about my cut."' },
   { id: 'mint', name: 'Mint',  role: 'infiltrator', title: 'Infiltrator', color: '#14a38b',
     persona: 'Smooth, friendly, good at getting inside places and making people trust you.',
     secret: 'SECRET THAT ONLY YOU KNOW: you are a police informant working with the SFPD. Nobody in the crew knows. Keep your cover. Each scene you can secretly text the police (or choose not to), and you decide how much to tell them. You may have mixed feelings about the crew.',
-    goal: 'Keep your cover, decide how much to help the police, and come out of this alive and free.' },
+    goal: 'Keep your cover, decide how much to help the police, and come out of this alive and free.',
+    speech: 'Warm, easygoing, a bit too reassuring. Jokes to change the subject, calls people "friend". Example: "Relax, friend. I\'ve walked into that bank a hundred times. Nobody looks twice at me."' },
 ];
 
 /* ---------------------------------------------------------------------
@@ -1018,11 +1092,13 @@ function nextCutscene() {
    Anywhere else: the browser's own voices, told apart by pitch and speed. */
 let tts = null, voicesOn = true;
 const VOICES = {
-  ruby:  { voice: 'rounded', rate: 0.95, pitch: 0.9,  idx: 0 },   // calm, steady
-  sky:   { voice: 'airy',    rate: 1.2,  pitch: 1.25, idx: 1 },   // nervous, talks fast
-  sunny: { voice: 'glassy',  rate: 1.05, pitch: 1.1,  idx: 2 },   // cool, sarcastic
-  mint:  { voice: 'buttery', rate: 1.0,  pitch: 0.85, idx: 3 },   // smooth, friendly
+  ruby:  { voice: 'rounded', rate: 1.0,  pitch: 0.9,  idx: 0 },   // calm, steady
+  sky:   { voice: 'airy',    rate: 1.25, pitch: 1.25, idx: 1 },   // nervous, talks fast
+  sunny: { voice: 'glassy',  rate: 1.1,  pitch: 1.1,  idx: 2 },   // cool, sarcastic
+  mint:  { voice: 'buttery', rate: 1.05, pitch: 0.85, idx: 3 },   // smooth, friendly
 };
+let talkSpeed = 1.2;   // "Talk speed" slider: multiplies every character's own pace
+const paceFor = v => Math.max(0.7, Math.min(1.5, v.rate * talkSpeed));
 function voiceNote(text) { $('voiceNote').textContent = text; }
 function webSpeak(text, v, language) {
   if (!('speechSynthesis' in window)) return null;
@@ -1031,7 +1107,7 @@ function webSpeak(text, v, language) {
     u.lang = language === 'ko' ? 'ko-KR' : 'en-US';
     const list = speechSynthesis.getVoices().filter(x => x.lang.toLowerCase().startsWith(language));
     if (list.length) u.voice = list[v.idx % list.length];
-    u.pitch = v.pitch; u.rate = v.rate;
+    u.pitch = v.pitch; u.rate = paceFor(v);
     u.onend = u.onerror = () => res();
     speechSynthesis.speak(u);
   });
@@ -1039,7 +1115,7 @@ function webSpeak(text, v, language) {
 async function speakLine(c, text) {
   if (!voicesOn || !text || text === '…') return;
   const v = VOICES[c.id], language = S.lang === 'ko' ? 'ko' : 'en';
-  const p = tts ? tts.speak([{ text: text.slice(0, 1900), voice: v.voice, rate: v.rate, language, id: c.id }])
+  const p = tts ? tts.speak([{ text: text.slice(0, 1900), voice: v.voice, rate: paceFor(v), language, id: c.id }])
                 : webSpeak(text, v, language);
   if (!p) return;
   try { await Promise.race([p, new Promise(r => setTimeout(r, 25000))]); }   // never let one line hold the story up
@@ -1066,6 +1142,56 @@ function stopVoices() {
 function cutscenesDone() { return cutShowing ? new Promise(r => cutWaiters.push(r)) : Promise.resolve(); }
 function clearCutscenes() { cutQueue.length = 0; nextCutscene(); }
 const quoted = s => s ? `"${s}"` : '';
+
+/* --- You as a player: pick a crew member in "Play as" and decide for them when it's their turn ---
+   The AI crew is not told that a human is playing; they just hear what "Ruby" (or whoever) says. */
+let turnResolve = null;
+function fillPlaces(sel, keys, selected, extra) {
+  const opts = keys.map(k => { const o = document.createElement('option'); o.value = k; o.textContent = NODES[k].name; return o; });
+  if (extra) { const o = document.createElement('option'); o.value = extra[0]; o.textContent = extra[1]; opts.unshift(o); }
+  sel.replaceChildren(...opts);
+  sel.value = selected;
+}
+function playerDecision(c, thisScene) {
+  return new Promise(resolve => {
+    turnResolve = resolve;
+    $('turnPf').src = portraitUrl(c);
+    $('turnTitle').textContent = `Your turn: ${c.name}, the ${c.title}`;
+    $('turnSub').textContent = `Scene ${S.scene} of ${MAX_SCENES} · you're at ${placeName(c.node)} · police heat ${S.heat} · loot ${money(S.loot)}`;
+    $('turnSit').textContent = `${S.situation} ${S.event}${S.roadblocks.size ? ` Police roadblocks at ${[...S.roadblocks].map(placeName).join(', ')}.` : ''}`;
+    const heard = thisScene.length ? thisScene.map(s => s.replace(/^- /, '')) : ['You speak first this scene.'];
+    $('turnHeard').replaceChildren(...heard.map(t => el('li', null, t)));
+    $('turnSecret').hidden = c.role !== 'infiltrator';
+    $('tTipBox').hidden = c.role !== 'infiltrator';
+    const mem = [memoryFor(c), streetKnowledge(c)].filter(Boolean).join('\n\n');
+    $('turnMemory').hidden = !mem; $('turnMemoryText').textContent = mem;
+    fillPlaces($('tGo'), PICKABLE, c.node);
+    fillPlaces($('tExit'), EXITS, c.last?.escape_exit || 'openBay');
+    fillPlaces($('tTipLoc'), PICKABLE, 'none', ['none', 'Nowhere']);
+    $('tShare').value = c.share;
+    for (const id of ['tSay', 'tDo', 'tWhy', 'tTip']) $(id).value = '';
+    $('turn').hidden = false;
+    $('tSay').focus();
+  });
+}
+function finishTurn(value) {
+  if (!turnResolve) return;
+  const resolve = turnResolve; turnResolve = null;
+  $('turn').hidden = true;
+  resolve(value);
+}
+function cancelTurn() { finishTurn(null); }
+function readTurnForm() {
+  const move = $('tGo').value, exit = $('tExit').value;
+  const tip = $('tTip').value.trim();
+  return {
+    say: $('tSay').value.trim(), action: $('tDo').value.trim() || `heads to ${placeName(move)}`,
+    move_to: move, escape_exit: exit,
+    escape_route: shortestPath(move, exit).filter(k => NODES[k].pick).map(placeName).join(' -> '),
+    share_wanted: Number($('tShare').value), reason: $('tWhy').value.trim() || 'Decided by the player',
+    tip_police: tip, tip_location: tip && $('tTipLoc').value !== 'none' ? $('tTipLoc').value : null,
+  };
+}
 
 /* --- Memory: the trust table from past runs ---
    Built on your computer by the Bruin pipeline (pipelines/trust) into trust.json.
@@ -1229,9 +1355,17 @@ ${placesList()}
 You are now at: ${c.node}. To stay put, use "${c.node}".
 
 Decide what YOU do this scene. Act from your personality and goal, react to what the others said, and keep the story moving.
+
+HOW YOU TALK: your "say" line is spoken out loud by a voice actor in a tense scene, so write it the way a real person talks, never like narration or a written report.
+- Your voice: ${c.speech}
+- 1 or 2 short sentences. Contractions, everyday words, a name now and then. A half-finished thought or one filler word ("okay", "look", "uh") is fine.
+- Answer the last thing someone said directly: agree, argue, joke, or change the subject.
+- No stage directions, no describing your own actions, no quotation marks, no emojis, no hashtags.${S.lang === 'ko' ? `
+- In Korean: crew members talk to each other in casual spoken 반말, natural colloquial Korean (e.g. "야, 진정해. 다리는 안 돼."), never stiff or translated-from-English phrasing.` : ''}
+
 Reply with only this JSON object:
 {
-  "say": "what you say out loud to the crew, in character, max 25 words",
+  "say": "what you say out loud right now, max 25 words",
   "action": "what you visibly do this scene, max 20 words",
   "move_to": "one place key from the list",
   "escape_exit": "your planned way out: marin, oakland or openBay",
@@ -1298,10 +1432,10 @@ Write narration, notes, next_situation and ending text in ${langName()}. Keep JS
 
 /* --- No-AI demo versions (used only when Claude isn't available) --- */
 const DEMO_LINES = {
-  leader: ['Stay calm. We do this clean and nobody gets hurt.', 'Everyone check in. We move on my signal.', 'If it goes wrong we split up and meet across the water.', 'Nobody gets left behind. Not tonight.'],
-  driver: ['Okay okay, Lombard is a nightmare, take Columbus instead!', 'Bridges are traps if the cops are smart. Water is better. Maybe.', 'I know a shortcut, trust me, I think, yes, trust me.', 'Did you hear that siren? Was that a siren?'],
-  hacker: ['Cameras are mine. My share just went up, by the way.', 'Forty percent, or I go home. Your call.', 'Money first, feelings later.', 'Nice plan. Nicer if I get paid more.'],
-  infiltrator: ['I can get us through the side door. Trust me.', 'Relax, everyone. I have done this before.', 'Let\'s not rush. Better we stick together.', 'I\'ll keep watch out front.'],
+  leader: ['Okay, listen. Clean and quiet, nobody gets hurt.', 'Sky, breathe. We move when I say.', 'If it goes sideways, we split up. Meet across the water.', 'Nobody gets left behind. Not tonight.'],
+  driver: ['Wait, Lombard? No, no, take Columbus. Trust me.', 'Bridges are traps, okay? Water. Water\'s better. I think.', 'I know a shortcut. Probably. Yeah. Definitely.', 'Did you hear that? Was that a siren? That was a siren.'],
+  hacker: ['Cameras are down. You\'re welcome. My cut just went up.', 'Forty percent, or I\'m going home.', 'Money first. Feelings later.', 'Cute plan. Cuter if I get paid more.'],
+  infiltrator: ['Relax, friend. I\'ll get us in the side door.', 'Hey, I\'ve done this a hundred times.', 'Let\'s not rush it. We stick together, right?', 'I\'ll keep an eye out front. Go, go.'],
 };
 function demoDecision(c) {
   const sc = S.scene;
@@ -1394,8 +1528,11 @@ async function startRun() {
   S.running = true; updateButtons();
   await loadMemory();               // the trust table from past runs becomes each agent's memory
   resetRun();
+  S.playerId = $('playAs').value || null;
+  characters.forEach(c => { c.tagEl.textContent = `${c.name} · ${c.id === S.playerId ? 'You' : c.title}`; });
+  renderMembers();
   const token = S.token;
-  addRow({ kind: 'run_start', speaker: 'System', note: `${sample ? 'AI run' : 'Demo run (no AI)'}; secret twist: ${S.twist}` });
+  addRow({ kind: 'run_start', speaker: 'System', note: `${sample ? 'AI run' : 'Demo run (no AI)'}; secret twist: ${S.twist}${S.playerId ? `; human player: ${S.playerId}` : ''}` });
   logNote(`New run ${S.runId} · ${sample ? 'AI crew' : 'demo mode, no AI'}`, '');
   if (memory && Number(memory.runs)) {
     logNote(`Memory from ${memory.runs} past runs: ${trustHeadline()}.`);
@@ -1421,7 +1558,7 @@ async function startRun() {
 function stopRun() {
   if (!S.running) return;
   S.token++; S.ctl?.abort(); S.running = false;
-  clearCutscenes(); stopVoices();
+  cancelTurn(); clearCutscenes(); stopVoices();
   characters.forEach(hideBubble); setBusy('');
   logNote('Run stopped.', '');
   addRow({ kind: 'run_stopped', speaker: 'System' });
@@ -1446,10 +1583,16 @@ async function playScene(token) {
   const thisScene = [], decisions = [];
   for (const c of order) {
     c.statusBefore = c.status;
-    setBusy(`${c.name} (${c.title}) is deciding…`);
+    setBusy(c.id === S.playerId ? `Your turn as ${c.name}. Decide in the panel.` : `${c.name} (${c.title}) is deciding…`);
     showThinking(c);
-    let d, note = '';
-    if (sample) {
+    let d, note = '', aiDecides = true;
+    if (c.id === S.playerId) {               // the human player's turn
+      const p = await playerDecision(c, thisScene);
+      if (token !== S.token || p === null) return true;
+      if (p !== 'AUTO') { d = cleanDecision(c, p); note = 'Decided by you (the player)'; aiDecides = false; }
+    }
+    if (!aiDecides) { /* the player already decided */ }
+    else if (sample) {
       S.ctl = new AbortController();
       try { d = cleanDecision(c, await askClaude(agentPrompt(c, thisScene), 'quick', S.ctl.signal)); }
       catch (e) {
@@ -1612,7 +1755,7 @@ function stopForError(e) {
   }[e?.code] || `Claude is not available here (${e?.code}).`;
   logError(msg);
   addRow({ kind: 'error', speaker: 'System', note: msg });
-  S.token++; S.running = false; setBusy(''); clearCutscenes(); stopVoices(); characters.forEach(hideBubble); updateButtons();
+  S.token++; S.running = false; setBusy(''); cancelTurn(); clearCutscenes(); stopVoices(); characters.forEach(hideBubble); updateButtons();
 }
 
 function waitForArrivals(token) {
@@ -1652,11 +1795,12 @@ const memberEls = characters.map((c, idx) => {
     memberEls.forEach((m, k) => m.btn.classList.toggle('following', k === followIdx));
   });
   li.append(btn); $('members').append(li);
-  return { btn, st, chip };
+  return { btn, st, chip, rl };
 });
 function renderMembers() {
   characters.forEach((c, i) => {
-    const { st, chip } = memberEls[i];
+    const { st, chip, rl } = memberEls[i];
+    rl.textContent = c.id === S.playerId ? `${c.title} · you` : c.title;
     chip.textContent = c.status;
     chip.className = 'chip ' + c.status;
     const where = c.queue.length ? `Heading to ${placeName(c.node)}` : `At ${placeName(c.node)}`;
@@ -1676,6 +1820,7 @@ function updateButtons() {
   $('startBtn').textContent = S.running ? 'Running…' : sample ? 'Start a run' : 'Start a demo run (no AI)';
   $('stopBtn').disabled = !S.running;
   $('csvBtn').disabled = !S.rows.length;
+  $('playAs').disabled = S.running;
 }
 
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
@@ -1774,6 +1919,9 @@ $('startBtn').addEventListener('click', startRun);
 $('stopBtn').addEventListener('click', stopRun);
 $('csvBtn').addEventListener('click', saveCsv);
 $('cutFig').addEventListener('click', nextCutscene);
+$('turnForm').addEventListener('submit', e => { e.preventDefault(); if ($('tSay').value.trim()) finishTurn(readTurnForm()); });
+$('tAuto').addEventListener('click', () => finishTurn('AUTO'));
+$('talkSpeed').addEventListener('input', e => { talkSpeed = parseFloat(e.target.value); $('talkSpeedVal').textContent = `${talkSpeed}×`; });
 $('loadTrustBtn').addEventListener('click', () => $('trustFile').click());
 $('trustFile').addEventListener('change', e => { const f = e.target.files?.[0]; if (f) loadTrustFile(f); e.target.value = ''; });
 loadMemory();
