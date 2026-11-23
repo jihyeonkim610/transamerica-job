@@ -28,11 +28,10 @@
 
 AI 기능은 claude.ai 페이지에서만 동작하고, 그림 생성과 기억 정리는 내 컴퓨터에서 해요.
 
-```
-claude.ai 페이지에서 플레이 ──► 기록 CSV 저장 ──► update-trust.ps1 실행
-        ▲                                         │ (Bruin: CSV → DuckDB → 신뢰 테이블)
-        └──────── "Load trust.json" ◄─────────────┘
-```
+1. claude.ai 페이지에서 플레이해요
+2. 기록을 CSV로 저장해요
+3. `update-trust.ps1`을 실행해요 (Bruin: CSV → DuckDB → 신뢰 테이블 → `trust.json`)
+4. 페이지에서 **Load trust.json**을 누르면, 다음 판 캐릭터들이 그 기억을 가지고 1번부터 다시 시작해요
 
 - **claude.ai에서:** 플레이하는 사람의 Claude 계정으로 AI 캐릭터, 목소리, 파일 저장이 동작해요. API 키가 필요 없어요.
 - **내 컴퓨터에서:** Runware 그림 생성(`.env`의 키 사용)과 Bruin 파이프라인을 실행해요.
