@@ -1,6 +1,8 @@
 /* @bruin
 name: mart.trust
 type: duckdb.sql
+owner: jihyeonkim610
+tags: ["transamerica-job", "mart", "agent-memory"]
 description: |
   The trust table: one row for every pair of crew members (truster -> trustee).
   trust_score starts at 70 and moves with the weight of every KNOWN event (6 points per weight point), kept between 0 and 100.
@@ -11,18 +13,66 @@ depends:
   - raw.decision_log
   - staging.betrayal_events
 columns:
+  - name: truster
+    type: varchar
+    description: The crew member whose trust this row describes
+    primary_key: true
+    checks:
+      - name: not_null
+      - name: accepted_values
+        value: ["Ruby", "Sky", "Sunny", "Mint"]
+  - name: trustee
+    type: varchar
+    description: The crew member being trusted (or not)
+    primary_key: true
+    checks:
+      - name: not_null
+      - name: accepted_values
+        value: ["Ruby", "Sky", "Sunny", "Mint"]
+  - name: runs_together
+    type: integer
+    description: How many saved runs both played in
+    checks:
+      - name: non_negative
+  - name: known_betrayals
+    type: integer
+    description: Events the truster knows about that hurt trust
+    checks:
+      - name: non_negative
+  - name: secret_tips
+    type: integer
+    description: The trustee's texts to the police in runs with the truster, found out or not
+    checks:
+      - name: non_negative
+  - name: times_exposed
+    type: integer
+    description: Runs where the trustee was exposed as the police informant
+    checks:
+      - name: non_negative
+  - name: times_left_behind
+    type: integer
+    description: Times the trustee escaped while the truster was being arrested
+    checks:
+      - name: non_negative
+  - name: greedy_runs
+    type: integer
+    description: Runs where the trustee asked for 35% or more of the loot
+    checks:
+      - name: non_negative
+  - name: escaped_together
+    type: integer
+    description: Runs where both got away
+    checks:
+      - name: non_negative
   - name: trust_score
     type: integer
+    description: Trust from 0 (none) to 100 (complete); 70 means no history yet
     checks:
       - name: not_null
       - name: min
         value: 0
       - name: max
         value: 100
-  - name: secret_tips
-    type: integer
-    checks:
-      - name: non_negative
 custom_checks:
   - name: one row per pair
     description: Every truster -> trustee pair appears exactly once.

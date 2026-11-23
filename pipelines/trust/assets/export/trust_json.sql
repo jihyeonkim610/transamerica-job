@@ -1,6 +1,8 @@
 /* @bruin
 name: export.trust_json
 type: duckdb.sql
+owner: jihyeonkim610
+tags: ["transamerica-job", "export", "agent-memory"]
 description: |
   Writes trust.json next to index.html. Before each run the page reads it and gives every agent
   its own memories: how much it trusts each crewmate and why, and how its past runs ended.
@@ -10,6 +12,13 @@ depends:
   - mart.run_summary
   - mart.place_stats
   - mart.police_hotspots
+custom_checks:
+  - name: every trust row has a score before export
+    query: SELECT count(*) FROM mart.trust WHERE trust_score IS NULL
+    value: 0
+  - name: every exit is known before export
+    query: SELECT count(*) FROM mart.place_stats WHERE is_exit IS NULL
+    value: 0
 @bruin */
 
 COPY (

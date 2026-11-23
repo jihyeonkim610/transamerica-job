@@ -1,6 +1,8 @@
 /* @bruin
 name: mart.place_stats
 type: duckdb.sql
+owner: jihyeonkim610
+tags: ["transamerica-job", "mart", "agent-learning"]
 description: |
   What the crew has learned about each place from past runs: how often someone headed there,
   how often that ended in an escape or an arrest, and how often it was the planned way out.
@@ -12,13 +14,53 @@ depends:
   - staging.crew_status
   - reference.places
 columns:
-  - name: place_name
+  - name: place_key
     type: varchar
+    description: Key the game uses for the place
+    primary_key: true
     checks:
       - name: not_null
       - name: unique
+  - name: place_name
+    type: varchar
+    description: Name of the place as written in the decision log
+    checks:
+      - name: not_null
+      - name: unique
+  - name: area
+    type: varchar
+    description: Part of the map (downtown, north, south, east, bay, exit)
+  - name: is_exit
+    type: boolean
+    description: True for the three ways out of the city
+  - name: visits
+    type: integer
+    description: Times a crew member decided to go there
+    checks:
+      - name: non_negative
+  - name: runs_visited
+    type: integer
+    description: Runs in which someone went there
+    checks:
+      - name: non_negative
+  - name: escapes
+    type: integer
+    description: Escapes in a scene where the crew member was heading there
+    checks:
+      - name: non_negative
+  - name: arrests
+    type: integer
+    description: Arrests in a scene where the crew member was heading there
+    checks:
+      - name: non_negative
+  - name: times_planned_as_exit
+    type: integer
+    description: Decisions that named this place as the planned way out
+    checks:
+      - name: non_negative
   - name: escape_rate
     type: double
+    description: escapes / visits (empty if never visited)
     checks:
       - name: min
         value: 0
@@ -26,11 +68,19 @@ columns:
         value: 1
   - name: arrest_rate
     type: double
+    description: arrests / visits (empty if never visited)
     checks:
       - name: min
         value: 0
       - name: max
         value: 1
+custom_checks:
+  - name: outcomes never exceed visits
+    query: SELECT count(*) FROM mart.place_stats WHERE escapes + arrests > visits
+    value: 0
+  - name: only exits produce escapes
+    query: SELECT count(*) FROM mart.place_stats WHERE NOT is_exit AND escapes > 0
+    value: 0
 @bruin */
 
 WITH decisions AS (

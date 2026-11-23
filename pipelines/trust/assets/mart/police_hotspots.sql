@@ -1,6 +1,8 @@
 /* @bruin
 name: mart.police_hotspots
 type: duckdb.sql
+owner: jihyeonkim610
+tags: ["transamerica-job", "mart", "agent-learning"]
 description: |
   Where the police set up roadblocks in past runs, as a share of all scenes played.
   Read from the "roadblocks" column of each scene's world-event row (place keys separated by spaces).
@@ -12,16 +14,38 @@ depends:
 columns:
   - name: place_key
     type: varchar
+    description: Key of the place that had a roadblock
+    primary_key: true
     checks:
       - name: not_null
       - name: unique
+  - name: place_name
+    type: varchar
+    description: Name of the place
+    checks:
+      - name: not_null
+  - name: scenes_with_police
+    type: integer
+    description: Scenes in which a roadblock stood there
+    checks:
+      - name: positive
+  - name: runs_with_police
+    type: integer
+    description: Runs in which a roadblock stood there at some point
+    checks:
+      - name: positive
   - name: share_of_scenes
     type: double
+    description: scenes_with_police / all scenes played
     checks:
       - name: min
         value: 0
       - name: max
         value: 1
+custom_checks:
+  - name: roadblocks only at known places
+    query: SELECT count(*) FROM mart.police_hotspots WHERE place_key NOT IN (SELECT place_key FROM reference.places)
+    value: 0
 @bruin */
 
 WITH scenes AS (

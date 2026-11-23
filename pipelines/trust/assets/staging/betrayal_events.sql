@@ -1,6 +1,8 @@
 /* @bruin
 name: staging.betrayal_events
 type: duckdb.sql
+owner: jihyeonkim610
+tags: ["transamerica-job", "staging"]
 description: |
   One row per "who did what to whom" in past runs.
   betrayer = the one who acted, victim = the one it was done to.
@@ -16,6 +18,53 @@ materialization:
 depends:
   - raw.decision_log
   - staging.crew_status
+columns:
+  - name: run_id
+    type: varchar
+    description: ID of the run the event happened in
+    checks:
+      - name: not_null
+  - name: scene
+    type: integer
+    description: Scene the event happened in
+  - name: betrayer
+    type: varchar
+    description: Who acted (for escaped_together, the crewmate who got away too)
+    checks:
+      - name: accepted_values
+        value: ["Ruby", "Sky", "Sunny", "Mint"]
+  - name: victim
+    type: varchar
+    description: Who it was done to, i.e. whose trust it changes
+    checks:
+      - name: accepted_values
+        value: ["Ruby", "Sky", "Sunny", "Mint"]
+  - name: event_type
+    type: varchar
+    description: Kind of event
+    checks:
+      - name: accepted_values
+        value: ["secret_tip", "exposed_as_informant", "left_behind", "greedy_share_demand", "escaped_together"]
+  - name: known
+    type: boolean
+    description: Whether the victim could know about it
+    checks:
+      - name: not_null
+  - name: weight
+    type: double
+    description: Trust impact; above 0 hurts trust, below 0 builds it
+    checks:
+      - name: min
+        value: -2
+      - name: max
+        value: 5
+  - name: detail
+    type: varchar
+    description: Human-readable detail, e.g. the text of a secret tip
+custom_checks:
+  - name: nobody betrays themselves
+    query: SELECT count(*) FROM staging.betrayal_events WHERE betrayer = victim
+    value: 0
 @bruin */
 
 WITH crew AS (
