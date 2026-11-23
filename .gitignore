@@ -1,0 +1,12 @@
+# Secret keys: never upload
+.env
+
+.bruin.yml
+logs/runs
+logs/*.log
+__pycache__/
+*.py[cod]
+logs/queries
+# Local database built by the Bruin pipeline (rebuilt from data/runs any time)
+data/*.duckdb
+data/*.duckdb.wal

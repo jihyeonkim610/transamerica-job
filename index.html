@@ -1,0 +1,1817 @@
+<meta charset="utf-8">
+<title>Transamerica Job</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: full-screen 3D city; crew dossier on the left, case log on the right, narration ticker between them. */
+  :root {
+    --sky: #cfe8f1;
+    --panel: #f6f8fa;
+    --panel-2: #ffffff;
+    --ink: #16202b;
+    --muted: #5b6876;
+    --line: #dbe2e8;
+    --accent: #c8432b;      /* Golden Gate orange */
+    --accent-ink: #ffffff;
+    --secret: #6a4bd1;      /* the informant's private channel */
+    --secret-bg: #efeaff;
+    --danger: #b3261e;
+    --ok: #1d7f55;
+    --warn: #a86400;
+    --shadow: 0 8px 28px rgba(16, 32, 48, .16);
+    --display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+    --body: "Inter", "Segoe UI", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --sky: #1a2733; --panel: #121a22; --panel-2: #18222c; --ink: #e5ecf2; --muted: #9aa8b5; --line: #29353f;
+      --accent: #ff7a52; --accent-ink: #1a0d08; --secret: #b8a4ff; --secret-bg: #251d45;
+      --danger: #ff8a80; --ok: #6fd3a5; --warn: #f2b45c; --shadow: 0 8px 28px rgba(0, 0, 0, .45); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --sky: #1a2733; --panel: #121a22; --panel-2: #18222c; --ink: #e5ecf2; --muted: #9aa8b5; --line: #29353f;
+    --accent: #ff7a52; --accent-ink: #1a0d08; --secret: #b8a4ff; --secret-bg: #251d45;
+    --danger: #ff8a80; --ok: #6fd3a5; --warn: #f2b45c; --shadow: 0 8px 28px rgba(0, 0, 0, .45); color-scheme: dark;
+  }
+  html, body { height: 100%; overflow: hidden; }
+  body { margin: 0; background: var(--sky); color: var(--ink); font-family: var(--body); font-size: 14px; }
+  #app { position: fixed; inset: 0; }
+  h1, h2 { font-family: var(--display); margin: 0; text-wrap: balance; }
+  button, select, input { font: inherit; color: inherit; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- 3D labels ---------- */
+  .label { font: 600 11px/1 var(--body); background: rgba(255,255,255,.92); color: #1d2733; padding: 4px 9px;
+    border-radius: 999px; white-space: nowrap; pointer-events: none; box-shadow: 0 1px 4px rgba(0,0,0,.18); }
+  .label.key { background: #1d2733; color: #fff; }
+  .tag { font: 700 11px/1 var(--body); color: #fff; padding: 3px 7px; border-radius: 6px; white-space: nowrap;
+    pointer-events: none; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+  .tag.out { opacity: .55; }
+  .bubble { max-width: 260px; font: 500 12px/1.35 var(--body); background: #fff; color: #16202b; padding: 7px 10px 7px 7px;
+    border-radius: 12px; border: 2px solid currentColor; box-shadow: 0 3px 10px rgba(0,0,0,.2); pointer-events: none;
+    transition: opacity .3s; display: flex; gap: 8px; align-items: flex-start; }
+  .bubble .pf { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex: none; border: 2px solid currentColor; background: #0f3b3d; }
+  .bubble .body { min-width: 0; }
+  .bubble .who { display: block; font-weight: 700; font-size: 11px; margin-bottom: 2px; }
+  .bubble .txt { color: #16202b; }
+  .bubble .sec { display: block; margin-top: 6px; padding-top: 5px; border-top: 1px dashed #6a4bd1; color: #4b32a8; font-style: italic; }
+  .bubble.thinking .txt { letter-spacing: 3px; font-weight: 700; }
+
+  /* ---------- Panels ---------- */
+  .panel { position: fixed; background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: var(--shadow); box-sizing: border-box; }
+  #crew { top: calc(14px + env(safe-area-inset-top, 0px)); left: calc(14px + env(safe-area-inset-left, 0px)); width: 300px;
+    max-height: calc(100% - 28px); overflow: auto; padding: 14px; display: grid; gap: 12px; }
+  .brand { display: grid; gap: 2px; }
+  .brand h1 { font-size: 20px; letter-spacing: -.01em; }
+  .brand p { margin: 0; font-size: 12px; color: var(--muted); }
+  .meters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .meter { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; min-width: 0; }
+  .meter span { display: block; font: 500 10px/1.2 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .meter b { font: 700 16px/1.3 var(--display); font-variant-numeric: tabular-nums; }
+  .heatbar { height: 4px; border-radius: 4px; background: var(--line); margin-top: 4px; overflow: hidden; }
+  .heatbar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .6s; }
+  #members { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .member { width: 100%; display: grid; grid-template-columns: 36px 1fr auto; gap: 2px 10px; align-items: center; text-align: left;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; cursor: pointer; }
+  .member:hover { border-color: var(--muted); }
+  .member.following { border-color: var(--ink); }
+  .member .av { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; grid-row: span 2; border: 2px solid; box-sizing: border-box; background: var(--line); }
+
+  /* ---------- Cutscene pop-up ---------- */
+  [hidden] { display: none !important; }
+  .cut { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none; z-index: 20;
+    padding: 16px calc(390px + env(safe-area-inset-right, 0px)) 120px calc(330px + env(safe-area-inset-left, 0px)); }
+  .cut figure { pointer-events: auto; margin: 0; width: min(640px, 100%); background: var(--panel); border: 1px solid var(--line);
+    border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,.4); cursor: pointer; animation: cutIn .45s ease-out; }
+  .cut img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #0b1a24; }
+  .cut figcaption { padding: 10px 14px 12px; display: grid; gap: 4px; }
+  .cut .ct { font: 700 16px/1.25 var(--display); }
+  .cut .cc { font-size: 13px; line-height: 1.45; color: var(--muted); }
+  .cut .cc:empty { display: none; }
+  .cut .hint { font: 500 10px/1 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  @keyframes cutIn { from { opacity: 0; transform: scale(.96); } }
+  @media (prefers-reduced-motion: reduce) { .cut figure { animation: none; } }
+  .member .nm { font-weight: 600; font-size: 13px; }
+  .member .rl { font: 500 10px/1 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .member .st { grid-column: 2 / 4; font-size: 12px; color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
+  .chip { font: 600 10px/1 var(--mono); padding: 3px 6px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+  .chip.escaped { color: var(--ok); border-color: currentColor; }
+  .chip.captured, .chip.exposed { color: var(--danger); border-color: currentColor; }
+  .chip.hiding { color: var(--warn); border-color: currentColor; }
+  .trust { display: grid; gap: 6px; }
+  .trust-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+    font: 500 10px/1.2 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .linkbtn { border: 0; background: none; padding: 0; color: var(--accent); font: 600 11px/1.2 var(--body); cursor: pointer; text-transform: none; letter-spacing: 0; }
+  .tgrid { display: grid; grid-template-columns: 52px repeat(4, 1fr); gap: 3px; font-size: 12px; }
+  .tgrid .th { font: 600 10px/1.2 var(--mono); color: var(--muted); text-align: center; padding: 3px 0; overflow: hidden; text-overflow: ellipsis; }
+  .tgrid .rh { text-align: left; }
+  .tgrid .cell { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; text-align: center; padding: 4px 0;
+    font: 700 12px/1.2 var(--display); font-variant-numeric: tabular-nums; }
+  .tgrid .self { background: transparent; border-style: dashed; color: var(--muted); font-weight: 400; }
+  .controls { display: grid; gap: 8px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .btn { border: 1px solid var(--line); background: var(--panel-2); border-radius: 9px; padding: 8px 12px; font-weight: 600; cursor: pointer; }
+  .btn:hover { border-color: var(--muted); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); flex: 1; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .field { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .field input[type=range] { flex: 1; min-width: 80px; accent-color: var(--accent); }
+  .field select { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; }
+  .mode { font: 500 11px/1.4 var(--mono); color: var(--muted); }
+  .mode b { color: var(--ink); }
+
+  #log { top: calc(14px + env(safe-area-inset-top, 0px)); right: calc(14px + env(safe-area-inset-right, 0px)); width: 360px;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; overflow: hidden; }
+  .loghead { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .loghead h2 { font-size: 15px; }
+  #entries { flex: 1; overflow: auto; padding: 10px 14px 16px; display: grid; gap: 8px; align-content: start; }
+  .empty { color: var(--muted); font-size: 13px; line-height: 1.5; }
+  .scene-h { font: 700 12px/1.2 var(--display); text-transform: uppercase; letter-spacing: .08em; color: var(--accent);
+    margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .entry { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; display: grid; gap: 4px; min-width: 0; }
+  .entry .top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .entry .who { font-weight: 700; font-size: 13px; }
+  .entry .meta { font: 500 10px/1.2 var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .entry p { margin: 0; font-size: 12.5px; line-height: 1.45; overflow-wrap: anywhere; }
+  .entry p b { font: 500 10px/1 var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-right: 4px; }
+  .entry .secret { background: var(--secret-bg); color: var(--secret); border-radius: 6px; padding: 4px 6px; }
+  .entry.narr { border-left: 3px solid var(--accent); }
+  .entry.event { border-style: dashed; }
+  .entry.end { border: 2px solid var(--accent); }
+  .entry.end h2 { font-size: 17px; }
+  .entry.err { border-color: var(--danger); }
+
+  #ticker { left: calc(330px + env(safe-area-inset-left, 0px)); right: calc(390px + env(safe-area-inset-right, 0px));
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px)); padding: 10px 14px; display: grid; gap: 4px; }
+  #ticker .sc { font: 600 11px/1.2 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+  #ticker .tx { font-size: 13.5px; line-height: 1.45; max-height: 5.8em; overflow: auto; }
+  #ticker .busy { font: 500 11px/1.3 var(--mono); color: var(--muted); }
+  #ticker .busy::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+    margin-right: 6px; vertical-align: middle; animation: pulse 1s infinite; }
+  #ticker .busy:empty { display: none; }
+  @keyframes pulse { 50% { opacity: .25; } }
+  @media (prefers-reduced-motion: reduce) { #ticker .busy::before { animation: none; } }
+
+  @media (max-width: 1100px) { #log { width: 300px; } #ticker { right: calc(330px + env(safe-area-inset-right, 0px)); }
+    .cut { padding-right: calc(330px + env(safe-area-inset-right, 0px)); } }
+  @media (max-width: 760px) {
+    #crew { width: auto; right: calc(10px + env(safe-area-inset-right, 0px)); left: calc(10px + env(safe-area-inset-left, 0px));
+      top: calc(10px + env(safe-area-inset-top, 0px)); max-height: 36%; padding: 10px; gap: 8px; }
+    .brand p, .mode { display: none; }
+    #members { grid-template-columns: 1fr 1fr; }
+    .member .st { display: none; }
+    #log { left: calc(10px + env(safe-area-inset-left, 0px)); right: calc(10px + env(safe-area-inset-right, 0px)); width: auto;
+      top: auto; height: 34%; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+    #ticker { left: calc(10px + env(safe-area-inset-left, 0px)); right: calc(10px + env(safe-area-inset-right, 0px));
+      bottom: calc(34% + 18px + env(safe-area-inset-bottom, 0px)); padding: 8px 10px; }
+    #ticker .tx { max-height: 4.3em; font-size: 12.5px; }
+    .cut { padding: 16px max(10px, env(safe-area-inset-right, 0px)) 16px max(10px, env(safe-area-inset-left, 0px)); }
+    .bubble { max-width: 200px; }
+    .trust { display: none; }
+    .bubble .pf { width: 34px; height: 34px; }
+  }
+</style>
+
+<div id="app"></div>
+
+<section id="crew" class="panel" aria-label="Crew">
+  <div class="brand">
+    <h1>Transamerica Job</h1>
+    <p>Four AI crew members plan a bank job in San Francisco. Each one decides for itself.</p>
+  </div>
+  <div class="meters">
+    <div class="meter"><span>Scene</span><b id="mScene">0/10</b></div>
+    <div class="meter"><span>Heat</span><b id="mHeat">0</b><div class="heatbar"><i id="mHeatBar"></i></div></div>
+    <div class="meter"><span>Loot</span><b id="mLoot">$0</b></div>
+  </div>
+  <ul id="members"></ul>
+  <div class="trust">
+    <div class="trust-h">
+      <span>Trust from past runs</span>
+      <button id="loadTrustBtn" class="linkbtn" type="button">Load trust.json</button>
+      <input type="file" id="trustFile" accept=".json,application/json" hidden>
+    </div>
+    <div id="trustGrid" class="tgrid" role="table" aria-label="Trust table: each row is how much that person trusts each column"></div>
+    <p id="trustNote" class="mode"></p>
+  </div>
+  <div class="controls">
+    <div class="row">
+      <button id="startBtn" class="btn primary" disabled>Connecting…</button>
+      <button id="stopBtn" class="btn" disabled>Stop</button>
+    </div>
+    <label class="field" for="speed">Speed <input type="range" id="speed" min="0.5" max="4" step="0.5" value="1.5"> <span id="speedVal">1.5×</span></label>
+    <div class="row">
+      <label class="field" for="lang">Dialogue
+        <select id="lang"><option value="en">English</option><option value="ko">한국어</option></select>
+      </label>
+      <label class="field" for="routesChk"><input type="checkbox" id="routesChk" checked> Escape routes</label>
+      <label class="field" for="voiceChk"><input type="checkbox" id="voiceChk" checked> Voices</label>
+      <button id="resetBtn" class="btn">Reset view</button>
+    </div>
+    <div id="mode" class="mode">Checking for Claude…</div>
+    <div id="voiceNote" class="mode" aria-live="polite"></div>
+  </div>
+</section>
+
+<section id="log" class="panel" aria-label="Decision log">
+  <div class="loghead">
+    <h2>Decision log</h2>
+    <button id="csvBtn" class="btn" disabled>Save log as CSV</button>
+  </div>
+  <div id="entries" aria-live="polite">
+    <p class="empty">Press <b>Start a run</b>. Each scene, every crew member decides what to say, where to go and how to escape, and the log records who decided what and why. The informant's secret texts to the police show up here in purple. Only you can see them.</p>
+  </div>
+</section>
+
+<section id="ticker" class="panel" aria-live="polite">
+  <div class="sc" id="tScene">Opening</div>
+  <div class="tx" id="tText">The crew meets at their Mission District hideout. The target: Bank of the Bay, right next to the Transamerica Pyramid.</div>
+  <div class="busy" id="tBusy"></div>
+</section>
+
+<div id="cutscene" class="cut" hidden>
+  <figure id="cutFig" title="Click to skip">
+    <img id="cutImg" alt="">
+    <figcaption>
+      <span class="ct" id="cutTitle"></span>
+      <span class="cc" id="cutCap"></span>
+      <span class="hint">Click to continue</span>
+    </figcaption>
+  </figure>
+</div>
+
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+/* =====================================================================
+   HOW THIS FILE IS ORGANIZED
+   PART A (steps 1-6): the 3D San Francisco map (same as before, plus a bank,
+            a police station, escape exits and police cars).
+   PART B (steps 7-12): the AI crew: who they are, how they decide, how the
+            story moves forward scene by scene, and the log + CSV.
+   Positions use x = east, n = north. 1 unit ≈ 100 m (landmarks exaggerated).
+   ===================================================================== */
+
+function seededRandom(seed) {
+  return function () {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+const rand = seededRandom(7);   // map layout: same every time. (The story uses Math.random: different every run.)
+
+const G = 1.2, GG_DECK = 4.2, BB_DECK = 4.2, ALC_TOP = 2.1, BOAT_Y = 0.35;
+
+/* ---------------------------------------------------------------------
+   STEP 1 — Stage: scene, camera, lights, controls
+   --------------------------------------------------------------------- */
+const container = document.getElementById('app');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xcfe8f1);
+scene.fog = new THREE.Fog(0xcfe8f1, 200, 430);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.5, 1200);
+const HOME_TARGET = new THREE.Vector3(14, 0, -24);
+const HOME_POS = new THREE.Vector3(22, 105, 70);
+camera.position.copy(HOME_POS);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+container.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(innerWidth, innerHeight);
+Object.assign(labelRenderer.domElement.style, { position: 'absolute', top: '0', pointerEvents: 'none' });
+container.appendChild(labelRenderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(HOME_TARGET);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI * 0.46;
+controls.minDistance = 12;
+controls.maxDistance = 260;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x7d9a7a, 1.4));
+const sun = new THREE.DirectionalLight(0xfff2dc, 2.2);
+sun.target.position.set(25, 0, -17);
+sun.position.set(-35, 120, 33);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -130, right: 130, top: 130, bottom: -130, near: 10, far: 300 });
+scene.add(sun, sun.target);
+
+/* Helpers */
+const matCache = new Map();
+function mat(color) {
+  const key = String(color);
+  if (!matCache.has(key)) matCache.set(key, new THREE.MeshStandardMaterial({ color, flatShading: true, roughness: 0.9, metalness: 0 }));
+  return matCache.get(key);
+}
+function addMesh(parent, geo, material, x = 0, y = 0, z = 0, shadow = true) {
+  const m = new THREE.Mesh(geo, material);
+  m.position.set(x, y, z); m.castShadow = shadow; m.receiveShadow = true;
+  parent.add(m); return m;
+}
+function box(parent, w, h, d, x, y, z, material, shadow = true) { return addMesh(parent, new THREE.BoxGeometry(w, h, d), material, x, y, z, shadow); }
+function beam(parent, p1, p2, w, h, material) {
+  const a = new THREE.Vector3(...p1), b = new THREE.Vector3(...p2);
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, a.distanceTo(b)), material);
+  m.position.copy(a).add(b).multiplyScalar(0.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), b.clone().sub(a).normalize());
+  m.castShadow = true; m.receiveShadow = true; parent.add(m); return m;
+}
+function placeAlong(obj, a, b) {
+  const dx = b.x - a.x, dn = b.n - a.n;
+  obj.position.set(a.x, 0, -a.n); obj.rotation.y = Math.atan2(dn, dx);
+  return Math.hypot(dx, dn);
+}
+function circlePoly(cx, cn, r, seg = 9) {
+  const pts = [];
+  for (let i = 0; i < seg; i++) { const a = (i / seg) * Math.PI * 2; pts.push([cx + Math.cos(a) * r, cn + Math.sin(a) * r]); }
+  return pts;
+}
+function inPoly(x, n, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, ni] = poly[i], [xj, nj] = poly[j];
+    if ((ni > n) !== (nj > n) && x < (xj - xi) * (n - ni) / (nj - ni) + xi) inside = !inside;
+  }
+  return inside;
+}
+function distToSegment(x, n, a, b) {
+  const dx = b.x - a.x, dn = b.n - a.n, len2 = dx * dx + dn * dn || 1;
+  const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (n - a.n) * dn) / len2));
+  return Math.hypot(x - (a.x + t * dx), n - (a.n + t * dn));
+}
+function addLabel(text, x, n, y, cls = 'label') {
+  const div = document.createElement('div');
+  div.className = cls; div.textContent = text;
+  const obj = new CSS2DObject(div); obj.position.set(x, y, -n); scene.add(obj); return obj;
+}
+
+/* ---------------------------------------------------------------------
+   STEP 2 — The street network the characters move on
+   Every place is a "node". Lines between nodes are streets, bridges or boat lanes.
+   "pick: true" = a place the AI crew is allowed to choose. "exit: true" = a way out of the city.
+   --------------------------------------------------------------------- */
+const NODES = {
+  mission:      { name: 'Mission District hideout', x: 4,    n: -8,   y: G, pick: true, desc: "the crew's hideout, where everyone starts" },
+  soma:         { name: 'SoMa warehouses',          x: 18,   n: 8,    y: G, pick: true, desc: 'quiet warehouse side streets south of downtown' },
+  sfpd:         { name: 'SFPD station',             x: 24,   n: 12,   y: G },
+  bank:         { name: 'Bank of the Bay',          x: 21.5, n: 25.5, y: G, pick: true, desc: 'THE TARGET: the bank right next to the Transamerica Pyramid' },
+  transamerica: { name: 'Transamerica Pyramid',     x: 20,   n: 29,   y: G, pick: true, desc: 'the pyramid plaza across from the bank, good lookout spot' },
+  chinatown:    { name: 'Chinatown',                x: 12,   n: 32,   y: G, pick: true, desc: 'crowded alleys, easy to blend in' },
+  lombard:      { name: 'Lombard Street',           x: 7.5,  n: 34,   y: G, pick: true, desc: 'the crooked street: slow, but confusing for a chase' },
+  russianHill:  { name: 'Russian Hill',             x: 8,    n: 40,   y: G },
+  wharf:        { name: "Fisherman's Wharf",        x: 6,    n: 41,   y: G, pick: true, desc: 'piers and boats; the way out by sea starts here' },
+  wharfDock:    { name: 'Wharf dock',               x: 6,    n: 43,   y: BOAT_Y },
+  bayPoint:     { name: 'the Bay',                  x: 6,    n: 50,   y: BOAT_Y },
+  alcDock:      { name: 'Alcatraz dock',            x: 2.5,  n: 56.3, y: BOAT_Y },
+  alcatraz:     { name: 'Alcatraz',                 x: 1.6,  n: 58.8, y: ALC_TOP, pick: true, desc: 'the old island prison: isolated, boat only, a place to lie low' },
+  openBay:      { name: 'Open Bay (by boat)',       x: 30,   n: 62,   y: BOAT_Y, pick: true, exit: true, desc: 'EXIT by sea: a boat out on the open Bay' },
+  northShore:   { name: 'Marina waterfront',        x: -12,  n: 38,   y: G, pick: true, desc: 'quiet waterfront on the way to the Golden Gate Bridge' },
+  ggRamp:       { name: 'Golden Gate approach',     x: -30,  n: 32.5, y: G },
+  ggDeck:       { name: 'Golden Gate south end',    x: -30,  n: 38,   y: GG_DECK + 0.2 },
+  goldenGate:   { name: 'Golden Gate Bridge',       x: -30,  n: 52,   y: GG_DECK + 0.2, pick: true, desc: 'middle of the Golden Gate Bridge, the road north' },
+  ggNorth:      { name: 'Golden Gate north end',    x: -30,  n: 68,   y: GG_DECK + 0.2 },
+  marinRamp:    { name: 'Marin approach',           x: -30,  n: 73.5, y: G },
+  marin:        { name: 'Marin Headlands',          x: -27,  n: 78,   y: G, pick: true, exit: true, desc: 'EXIT north: hills across the Golden Gate Bridge' },
+  bbRamp:       { name: 'Bay Bridge on-ramp',       x: 26.4, n: 20.1, y: G },
+  bbDeck:       { name: 'Bay Bridge west end',      x: 31,   n: 22,   y: BB_DECK + 0.2 },
+  bayBridge:    { name: 'Bay Bridge',               x: 41.6, n: 26.4, y: BB_DECK + 0.2, pick: true, desc: 'the west span of the Bay Bridge, the road east' },
+  bbWest:       { name: 'Yerba Buena Island',       x: 59.5, n: 33.7, y: BB_DECK + 0.2 },
+  bbEast:       { name: 'Bay Bridge east span',     x: 65.5, n: 36.8, y: BB_DECK + 0.2 },
+  bbEastEnd:    { name: 'Bay Bridge east end',      x: 88,   n: 42,   y: BB_DECK + 0.2 },
+  oaklandRamp:  { name: 'Oakland off-ramp',         x: 92.9, n: 43.1, y: G },
+  oakland:      { name: 'Oakland',                  x: 97,   n: 40,   y: G, pick: true, exit: true, desc: 'EXIT east: across the Bay Bridge' },
+};
+const EDGES = [
+  ['mission', 'soma'], ['mission', 'chinatown'], ['mission', 'transamerica'],
+  ['soma', 'sfpd'], ['soma', 'bank'], ['soma', 'bbRamp'],
+  ['bank', 'transamerica'], ['bank', 'bbRamp'],
+  ['transamerica', 'chinatown'], ['transamerica', 'lombard'], ['transamerica', 'bbRamp'],
+  ['chinatown', 'wharf'], ['chinatown', 'lombard'], ['lombard', 'wharf'], ['lombard', 'russianHill'],
+  ['russianHill', 'northShore'], ['northShore', 'wharf'], ['northShore', 'ggRamp'],
+  ['ggRamp', 'ggDeck'], ['ggDeck', 'goldenGate'], ['goldenGate', 'ggNorth'], ['ggNorth', 'marinRamp'], ['marinRamp', 'marin'],
+  ['bbRamp', 'bbDeck'], ['bbDeck', 'bayBridge'], ['bayBridge', 'bbWest'], ['bbWest', 'bbEast'], ['bbEast', 'bbEastEnd'],
+  ['bbEastEnd', 'oaklandRamp'], ['oaklandRamp', 'oakland'],
+  ['wharf', 'wharfDock'], ['wharfDock', 'bayPoint'], ['bayPoint', 'alcDock'], ['alcDock', 'alcatraz'], ['bayPoint', 'openBay'],
+];
+const PICKABLE = Object.keys(NODES).filter(k => NODES[k].pick);
+const EXITS = Object.keys(NODES).filter(k => NODES[k].exit);
+const ADJ = Object.fromEntries(Object.keys(NODES).map(k => [k, []]));
+for (const [a, b] of EDGES) {
+  const d = Math.hypot(NODES[a].x - NODES[b].x, NODES[a].n - NODES[b].n);
+  ADJ[a].push([b, d]); ADJ[b].push([a, d]);
+}
+// Shortest route between two places (Dijkstra's algorithm, like a GPS)
+function shortestPath(from, to) {
+  if (from === to) return [from];
+  const dist = { [from]: 0 }, prev = {}, todo = new Set(Object.keys(NODES));
+  while (todo.size) {
+    let u = null;
+    for (const k of todo) if (dist[k] !== undefined && (u === null || dist[k] < dist[u])) u = k;
+    if (u === null || u === to) break;
+    todo.delete(u);
+    for (const [v, w] of ADJ[u]) if (dist[u] + w < (dist[v] ?? Infinity)) { dist[v] = dist[u] + w; prev[v] = u; }
+  }
+  const path = [to];
+  while (path[0] !== from) { const p = prev[path[0]]; if (!p) return [from]; path.unshift(p); }
+  return path;
+}
+const PATH_SEGMENTS = EDGES.map(([a, b]) => [NODES[a], NODES[b]]);
+
+/* ---------------------------------------------------------------------
+   STEP 3 — Water and land
+   --------------------------------------------------------------------- */
+const waterGeo = new THREE.PlaneGeometry(420, 420, 70, 70);
+waterGeo.rotateX(-Math.PI / 2);
+const water = new THREE.Mesh(waterGeo, new THREE.MeshStandardMaterial({ color: 0x3f9cc4, flatShading: true, roughness: 0.35 }));
+water.position.set(20, 0, -15); water.receiveShadow = true; scene.add(water);
+const waterPos = waterGeo.attributes.position;
+const waterBase = Float32Array.from(waterPos.array);
+function animateWater(t) {
+  for (let i = 0; i < waterPos.count; i++) {
+    const x = waterBase[i * 3], z = waterBase[i * 3 + 2];
+    waterPos.array[i * 3 + 1] = Math.sin(x * 0.15 + t * 0.9) * 0.12 + Math.cos(z * 0.18 + t * 0.7) * 0.12;
+  }
+  waterPos.needsUpdate = true;
+}
+function makeLand(points, color, top = G, bottom = -1) {
+  const shape = new THREE.Shape(points.map(([x, n]) => new THREE.Vector2(x, n)));
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: top - bottom, bevelEnabled: false });
+  geo.rotateX(-Math.PI / 2);
+  const m = new THREE.Mesh(geo, mat(color)); m.position.y = bottom; m.receiveShadow = true; scene.add(m); return m;
+}
+const SF = [[-50,28],[-46,34],[-38,37],[-30,40],[-22,39],[-14,40],[-6,40],[2,41],[8,43],[14,42],[20,39],[26,34],[30,28],
+            [32,20],[33,12],[35,4],[36,-6],[40,-14],[46,-20],[42,-28],[36,-32],[34,-42],[30,-52],[-52,-52],[-53,-30],[-53,0],[-52,20]];
+const MARIN = [[-80,64],[-60,64],[-45,66],[-31,67.5],[-22,71],[-16,78],[-12,90],[-12,100],[-85,100]];
+const EAST_BAY = [[84,95],[135,95],[135,-65],[82,-65],[78,-30],[84,0],[88,40],[84,70]];
+const YERBA_BUENA = circlePoly(62, 35, 4.2);
+const TREASURE_ISLAND = [[59.5,40.5],[66.5,40.5],[67,48],[60,48.5]];
+const ALCATRAZ = circlePoly(2, 60, 3.4, 8);
+const LANDS = [SF, MARIN, EAST_BAY, YERBA_BUENA, TREASURE_ISLAND, ALCATRAZ];
+const onLand = (x, n) => LANDS.some(p => inPoly(x, n, p));
+makeLand(SF, 0xe9e2d0); makeLand(MARIN, 0x8cbf6e); makeLand(EAST_BAY, 0xe2dccb);
+makeLand(YERBA_BUENA, 0x8cbf6e); makeLand(TREASURE_ISLAND, 0xdcd6c4);
+const GG_PARK = [[-51,1],[-16,1],[-16,8],[-51,8]];
+const PRESIDIO = [[-36,31],[-14,31],[-14,38],[-22,37.5],[-30,38.5],[-36,35.5]];
+const DOLORES = [[1.5,-11],[6.5,-11],[6.5,-5],[1.5,-5]];
+for (const park of [GG_PARK, PRESIDIO, DOLORES]) makeLand(park, 0x86c06a, G + 0.06, G);
+
+const HILLS = [];
+function hill(x, n, r, h, color = 0x8cbf6e, base = G) {
+  const geo = new THREE.ConeGeometry(r, h, 8, 2);
+  const pos = geo.attributes.position, nudges = new Map();
+  for (let i = 0; i < pos.count; i++) {
+    const key = `${pos.getX(i).toFixed(3)},${pos.getY(i).toFixed(3)},${pos.getZ(i).toFixed(3)}`;
+    if (!nudges.has(key)) {
+      const isBottom = pos.getY(i) < -h / 2 + 0.01;
+      nudges.set(key, [(rand() - .5) * r * 0.18, isBottom ? 0 : (rand() - .5) * h * 0.2, (rand() - .5) * r * 0.18]);
+    }
+    const [dx, dy, dz] = nudges.get(key);
+    pos.setXYZ(i, pos.getX(i) + dx, pos.getY(i) + dy, pos.getZ(i) + dz);
+  }
+  geo.computeVertexNormals();
+  const m = addMesh(scene, geo, mat(color), x, base + h / 2 - 0.05, -n);
+  m.rotation.y = rand() * Math.PI;
+  HILLS.push({ x, n, r });
+}
+hill(-14, -4, 7, 6, 0x9cc47a); hill(-18, -24, 6, 5); hill(16, -26, 5, 3.5, 0x9cc47a); hill(15, 37.5, 2.6, 2.2, 0x9cc47a);
+hill(62, 35, 4.3, 4.5);
+for (const [x, n, r, h] of [[-60,80,14,14],[-40,85,12,12],[-24,90,9,9],[-72,70,9,8]]) hill(x, n, r, h, 0x7fb562);
+for (const [x, n, r, h] of [[118,60,14,12],[121,20,16,14],[118,-25,14,11],[125,-52,10,8]]) hill(x, n, r, h, 0x9cc47a);
+
+/* ---------------------------------------------------------------------
+   STEP 4 — Landmarks
+   --------------------------------------------------------------------- */
+function cableSpan(parent, x0, y0, x1, y1, sag, z, material, deckY = null) {
+  const yAt = u => y0 + (y1 - y0) * u - sag * 4 * u * (1 - u);
+  const pts = [];
+  for (let i = 0; i <= 16; i++) pts.push(new THREE.Vector3(x0 + (x1 - x0) * i / 16, yAt(i / 16), z));
+  const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.1, 4, false), material);
+  tube.castShadow = true; parent.add(tube);
+  if (deckY !== null) for (let x = x0 + 1.2; x < x1 - 0.6; x += 1.2) {
+    const cy = yAt((x - x0) / (x1 - x0));
+    if (cy - deckY > 0.3) box(parent, 0.06, cy - deckY, 0.06, x, (cy + deckY) / 2, z, material, false);
+  }
+}
+function buildGoldenGate() {
+  const orange = mat(0xc8432b), concrete = mat(0x9c9c96);
+  const g = new THREE.Group();
+  const L = placeAlong(g, { x: -30, n: 38 }, { x: -30, n: 68 });
+  const D = GG_DECK, TH = 15, t1 = L * 0.2, t2 = L * 0.8;
+  box(g, L, 0.4, 2.6, L / 2, D, 0, orange);
+  beam(g, [-5.5, G, 0], [0, D, 0], 2.6, 0.4, concrete);
+  beam(g, [L, D, 0], [L + 5.5, G, 0], 2.6, 0.4, concrete);
+  for (const tx of [t1, t2]) {
+    box(g, 2.6, 1, 4, tx, 0.3, 0, concrete);
+    for (const z of [-1.3, 1.3]) box(g, 0.8, TH, 0.8, tx, TH / 2, z, orange);
+    for (const y of [D + 2.2, D + 6, TH - 0.5]) box(g, 0.6, 0.7, 3.4, tx, y, 0, orange);
+  }
+  for (const z of [-1.3, 1.3]) {
+    cableSpan(g, 0, D + 0.3, t1, TH, 0.8, z, orange, D + 0.2);
+    cableSpan(g, t1, TH, t2, TH, TH - D - 1.2, z, orange, D + 0.2);
+    cableSpan(g, t2, TH, L, D + 0.3, 0.8, z, orange, D + 0.2);
+  }
+  scene.add(g);
+  addLabel('Golden Gate Bridge', -30, 53, TH + 3);
+}
+function buildBayBridge() {
+  const silver = mat(0xa9b4bc), concrete = mat(0x9c9c96), white = mat(0xe4e7ea);
+  const D = BB_DECK, TH = 12;
+  const west = new THREE.Group();
+  const L = placeAlong(west, { x: 31, n: 22 }, { x: 59, n: 33.5 });
+  const t1 = L * 0.22, mid = L * 0.5, t2 = L * 0.78, anchorTop = D + 1.6;
+  box(west, L + 2, 0.4, 2.6, (L + 2) / 2, D, 0, silver);
+  beam(west, [-5, G, 0], [0, D, 0], 2.6, 0.4, concrete);
+  box(west, 3, anchorTop, 3.2, mid, anchorTop / 2, 0, concrete);
+  for (const tx of [t1, t2]) {
+    box(west, 2.4, 1, 3.8, tx, 0.3, 0, concrete);
+    for (const z of [-1.3, 1.3]) box(west, 0.7, TH, 0.7, tx, TH / 2, z, silver);
+    for (const y of [D + 1.5, TH - 0.5]) box(west, 0.5, 0.5, 3.2, tx, y, 0, silver);
+    beam(west, [tx, D + 1.5, -1.3], [tx, TH - 0.5, 1.3], 0.22, 0.22, silver);
+    beam(west, [tx, D + 1.5, 1.3], [tx, TH - 0.5, -1.3], 0.22, 0.22, silver);
+  }
+  for (const z of [-1.3, 1.3]) {
+    cableSpan(west, 0, D + 0.3, t1, TH, 0.6, z, silver, D + 0.2);
+    cableSpan(west, t1, TH, mid, anchorTop, 1.2, z, silver, D + 0.2);
+    cableSpan(west, mid, anchorTop, t2, TH, 1.2, z, silver, D + 0.2);
+    cableSpan(west, t2, TH, L, D + 0.3, 0.6, z, silver, D + 0.2);
+  }
+  scene.add(west);
+  const east = new THREE.Group();
+  const L2 = placeAlong(east, { x: 65.5, n: 36.8 }, { x: 88, n: 42 });
+  box(east, L2 + 2, 0.4, 2.8, L2 / 2 - 1, D, 0, white);
+  for (let x = 3; x < L2; x += 3.3) box(east, 0.8, D, 1.8, x, D / 2 - 0.2, 0, concrete);
+  beam(east, [L2, D, 0], [L2 + 5, G, 0], 2.8, 0.4, concrete);
+  const towerTop = TH + 2;
+  box(east, 1, towerTop, 1, 4, towerTop / 2, 0, white);
+  for (const dx of [-3, -1.5, 1.5, 3, 4.5, 6]) for (const z of [-1.2, 1.2]) beam(east, [4, towerTop - 1, 0], [4 + dx, D + 0.2, z], 0.08, 0.08, white);
+  scene.add(east);
+  addLabel('Bay Bridge', 45, 27.8, TH + 3);
+}
+function buildTransamerica() {
+  const white = mat(0xf2efe6);
+  const g = new THREE.Group(); g.position.set(16, G, -28);
+  addMesh(g, new THREE.ConeGeometry(2.4, 18, 4, 1), white, 0, 9, 0).rotation.y = Math.PI / 4;
+  addMesh(g, new THREE.ConeGeometry(0.28, 4, 4), white, 0, 18.3, 0).rotation.y = Math.PI / 4;
+  for (const side of [-1, 1]) box(g, 0.5, 3.5, 0.9, side * 0.75, 12.5, 0, white);
+  box(g, 6, 0.1, 6, 0, 0.05, 0, mat(0xcfc9bb), false);
+  scene.add(g);
+  addLabel('Transamerica Pyramid', 16, 28, 23.5);
+}
+function buildBank() {   // the target: a small stone bank with columns, beside the pyramid
+  const stone = mat(0xe6dfcf), dark = mat(0x5b5348);
+  const g = new THREE.Group(); g.position.set(25.5, G, -27);
+  box(g, 3.6, 0.3, 4, 0, 0.15, 0, mat(0xcfc6b3));
+  box(g, 3, 2.6, 3.4, 0.2, 1.6, 0, stone);
+  for (const z of [-1.2, -0.4, 0.4, 1.2]) addMesh(g, new THREE.CylinderGeometry(0.16, 0.16, 2.4, 6), stone, -1.55, 1.5, z);
+  const roof = addMesh(g, new THREE.ConeGeometry(2.6, 0.9, 4), stone, -0.05, 3.35, 0);
+  roof.rotation.y = Math.PI / 4; roof.scale.set(1, 1, 1.1);
+  box(g, 0.1, 1.3, 0.9, -1.3, 0.95, 0, dark);   // the door
+  scene.add(g);
+  addLabel('Bank of the Bay', 25.5, 27, 7.5, 'label key');
+}
+function buildPoliceStation() {
+  const g = new THREE.Group(); g.position.set(28, G, -12);
+  box(g, 4, 2.6, 3.2, 0, 1.3, 0, mat(0xd3dbe3));
+  box(g, 4.05, 0.35, 3.25, 0, 2.1, 0, mat(0x234a8c));
+  box(g, 0.1, 1.2, 1, -2.02, 0.6, 0, mat(0x2b2d42));
+  scene.add(g);
+  addLabel('SFPD station', 28, 12, 6);
+}
+function buildLombard() {
+  const g = new THREE.Group(); g.position.set(-4, G, -36.5);
+  const slope = x => 4 - 0.37 * x;
+  const shape = new THREE.Shape([new THREE.Vector2(0, 0), new THREE.Vector2(10, 0), new THREE.Vector2(10, 0.3), new THREE.Vector2(0, 4)]);
+  addMesh(g, new THREE.ExtrudeGeometry(shape, { depth: 5, bevelEnabled: false }), mat(0x7dbb62));
+  const road = mat(0x8a8178), pts = [[0, 2.5]];
+  for (let i = 0; i < 8; i++) pts.push([0.8 + i * 1.15, i % 2 ? 4.2 : 0.8]);
+  pts.push([10, 2.5]);
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [x1, z1] = pts[i], [x2, z2] = pts[i + 1];
+    beam(g, [x1, slope(x1) + 0.08, z1], [x2, slope(x2) + 0.08, z2], 0.8, 0.1, road);
+  }
+  const flowerColors = [0xe84a7f, 0xc13a9c, 0xff7b54, 0xf7c548];
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [x, z] = pts[i];
+    addMesh(g, new THREE.CylinderGeometry(0.42, 0.42, 0.1, 7), road, x, slope(x) + 0.1, z);
+    for (const dz of [0.95, 1.5]) addMesh(g, new THREE.IcosahedronGeometry(0.24, 0), mat(flowerColors[(i + Math.round(dz)) % 4]), x, slope(x) + 0.2, z < 2.5 ? z + dz : z - dz);
+  }
+  const houseColors = [0xf4e1c1, 0xd9e7f2, 0xf2d0d0, 0xe6e0f5, 0xfff1c9];
+  for (let x = 0.6, k = 0; x < 10; x += 1.6, k++) { const h = slope(x) + 1.3; box(g, 1.4, h, 1.4, x, h / 2, 5.8, mat(houseColors[k % 5])); }
+  scene.add(g);
+  addLabel('Lombard Street', 1, 34, G + 6.5);
+}
+const BOBBING_BOATS = [];
+function buildWharf() {
+  const wood = mat(0xa0785a), shedColors = [0xd9a066, 0x8fb8de, 0xe07a5f, 0xf2cc8f];
+  [-1, 3, 9, 13].forEach((x, i) => { box(scene, 1.6, 0.5, 6.5, x, 0.75, -44.75, wood); box(scene, 1.2, 1.1, 2.4, x, 1.55, -45.5, mat(shedColors[i])); });
+  const sign = new THREE.Group(); sign.position.set(10, G, -41.5);
+  addMesh(sign, new THREE.CylinderGeometry(0.12, 0.12, 4, 6), mat(0x3d405b), 0, 2, 0);
+  addMesh(sign, new THREE.TorusGeometry(1.1, 0.2, 6, 14), mat(0xe4572e), 0, 4.3, 0);
+  addMesh(sign, new THREE.CylinderGeometry(0.95, 0.95, 0.12, 14), mat(0xf6f1e3), 0, 4.3, 0).rotation.x = Math.PI / 2;
+  addMesh(sign, new THREE.IcosahedronGeometry(0.45, 0), mat(0xe4572e), 0, 4.3, 0.15).scale.set(1, 0.6, 0.5);
+  scene.add(sign);
+  for (const [x, n, rot] of [[1, 47.5, 0.3], [11, 48, -0.4], [17, 44, 1.2], [-4, 45, 0.9]]) {
+    const b = new THREE.Group(); b.position.set(x, 0.3, -n); b.rotation.y = rot;
+    box(b, 0.9, 0.5, 2.2, 0, 0, 0, mat(0xf7f7f2));
+    addMesh(b, new THREE.CylinderGeometry(0.05, 0.05, 2.2, 4), mat(0x6b5b4b), 0, 1.3, 0.2);
+    addMesh(b, new THREE.ConeGeometry(0.55, 1.7, 3), mat(0xffffff), 0, 1.4, -0.2).scale.z = 0.2;
+    scene.add(b); BOBBING_BOATS.push({ obj: b, phase: rand() * 6 });
+  }
+  addLabel("Fisherman's Wharf", 6, 46, 5);
+}
+function buildAlcatraz() {
+  const g = new THREE.Group(); g.position.set(2, 0, -60);
+  addMesh(g, new THREE.CylinderGeometry(3.0, 3.6, 2.6, 7), mat(0x9c8f7a), 0, 0.8, 0).scale.x = 1.15;
+  box(g, 3.2, 1.4, 1.4, 0.8, ALC_TOP + 0.7, -0.8, mat(0xe8e2d0));
+  box(g, 3.3, 0.15, 1.5, 0.8, ALC_TOP + 1.45, -0.8, mat(0x8d8d8d));
+  addMesh(g, new THREE.CylinderGeometry(0.22, 0.32, 3, 6), mat(0xffffff), -1.6, ALC_TOP + 1.5, -1);
+  addMesh(g, new THREE.CylinderGeometry(0.3, 0.3, 0.4, 6), mat(0xf2b134), -1.6, ALC_TOP + 3.2, -1);
+  scene.add(g);
+  addLabel('Alcatraz', 2, 60, 7.5);
+}
+function buildMission() {
+  const colors = [0xff6b6b, 0xffd166, 0x06d6a0, 0x118ab2, 0xef476f, 0xf78c6b, 0x9b5de5, 0x4cc9f0];
+  for (let i = 0; i < 5; i++) for (let j = 0; j < 5; j++) {
+    if (rand() < 0.15) continue;
+    const x = 9.5 + i * 2.4, n = -13 + j * 2.4, h = 1.2 + rand() * 1.0;
+    box(scene, 1.6, h, 1.6, x, G + h / 2, -n, mat(colors[(i * 5 + j * 3) % colors.length]));
+    addMesh(scene, new THREE.ConeGeometry(1.2, 0.8, 4), mat(0x6d5c55), x, G + h + 0.4, -n).rotation.y = Math.PI / 4;
+  }
+  for (const [x, n] of [[2.3, -6], [5.8, -6.2], [2.5, -10.2], [5.7, -10]]) {
+    addMesh(scene, new THREE.CylinderGeometry(0.1, 0.16, 2.4, 5), mat(0x8b6b4a), x, G + 1.2, -n);
+    addMesh(scene, new THREE.IcosahedronGeometry(0.75, 0), mat(0x3d8c40), x, G + 2.5, -n).scale.y = 0.45;
+  }
+  box(scene, 2.2, 1.5, 1.3, -0.8, G + 0.75, 6.5, mat(0xf5f0e6));
+  const roof = addMesh(scene, new THREE.ConeGeometry(1.4, 0.6, 4), mat(0xb5523b), -0.8, G + 1.8, 6.5);
+  roof.rotation.y = Math.PI / 4; roof.scale.set(1.15, 1, 0.75);
+  addLabel('Mission District (hideout)', 10, -8, 7);
+}
+buildGoldenGate(); buildBayBridge(); buildTransamerica(); buildBank(); buildPoliceStation();
+buildLombard(); buildWharf(); buildAlcatraz(); buildMission();
+addLabel('Marin Headlands', -27, 80, 5);
+addLabel('Oakland', 97, 40, 5);
+
+/* ---------------------------------------------------------------------
+   STEP 5 — City blocks and trees (kept off the streets the characters use)
+   --------------------------------------------------------------------- */
+const NO_BUILD_RECTS = [GG_PARK, PRESIDIO].map(p => [Math.min(...p.map(q => q[0])), Math.max(...p.map(q => q[0])), Math.min(...p.map(q => q[1])), Math.max(...p.map(q => q[1]))]);
+NO_BUILD_RECTS.push([-3, 19.5, -15, -3.5], [-5, 7, 29.5, 37.6], [-3, 15, 39, 44.5]);
+const NO_BUILD_CIRCLES = [[16, 28, 3.6], [28, 21, 4], [25.5, 27, 3.6], [28, 12, 3.6]];
+function blocked(x, n, pathGap = 1.9) {
+  if (HILLS.some(h => Math.hypot(x - h.x, n - h.n) < h.r + 0.8)) return true;
+  if (NO_BUILD_RECTS.some(([x0, x1, n0, n1]) => x > x0 - 1.2 && x < x1 + 1.2 && n > n0 - 1.2 && n < n1 + 1.2)) return true;
+  if (NO_BUILD_CIRCLES.some(([cx, cn, r]) => Math.hypot(x - cx, n - cn) < r)) return true;
+  return PATH_SEGMENTS.some(([a, b]) => distToSegment(x, n, a, b) < pathGap);
+}
+const fullyOnLand = (poly, x, n, m = 1.6) => [[-m, -m], [m, -m], [-m, m], [m, m]].every(([dx, dn]) => inPoly(x + dx, n + dn, poly));
+const buildings = [];
+const DOWNTOWN = ['#cfd6dc', '#b8c2cc', '#e3e6e8', '#9fb0bf', '#d9d4cc'];
+const PASTELS = ['#f4e9d8', '#e9d5c1', '#dfe7ec', '#f2d7d9', '#d8e2dc', '#fae1c2', '#cfd8e3', '#ffffff'];
+function fillBuildings(poly, density, heightFn, colorFn, xMax = Infinity) {
+  for (let x = -54; x < Math.min(xMax, 135); x += 3.1) for (let n = -54; n < 100; n += 3.1) {
+    if (!fullyOnLand(poly, x, n) || blocked(x, n) || rand() > density) continue;
+    const h = heightFn(x, n);
+    buildings.push({ x, n, w: 2 + rand() * 0.6, d: 2 + rand() * 0.6, h, color: colorFn(x, n, h) });
+  }
+}
+fillBuildings(SF, 0.8,
+  (x, n) => { const d = Math.hypot(x - 19, n - 25); return 0.9 + 8 * Math.exp(-d / 6) + rand() * (d < 12 ? 2.4 : 1.1); },
+  (x, n) => Math.hypot(x - 19, n - 25) < 11 ? DOWNTOWN[Math.floor(rand() * DOWNTOWN.length)] : PASTELS[Math.floor(rand() * PASTELS.length)]);
+fillBuildings(EAST_BAY, 0.4, (x, n) => 0.8 + 5 * Math.exp(-Math.hypot(x - 94, n - 28) / 5) + rand() * 1.2, () => PASTELS[Math.floor(rand() * PASTELS.length)], 106);
+fillBuildings(TREASURE_ISLAND, 0.6, () => 0.8 + rand() * 1.2, () => PASTELS[Math.floor(rand() * PASTELS.length)]);
+const boxGeo = new THREE.BoxGeometry(1, 1, 1); boxGeo.translate(0, 0.5, 0);
+const cityMesh = new THREE.InstancedMesh(boxGeo, new THREE.MeshStandardMaterial({ flatShading: true, roughness: 0.85 }), buildings.length);
+const m4 = new THREE.Matrix4(), qIdentity = new THREE.Quaternion(), tmpColor = new THREE.Color();
+buildings.forEach((b, i) => {
+  m4.compose(new THREE.Vector3(b.x, G, -b.n), qIdentity, new THREE.Vector3(b.w, b.h, b.d));
+  cityMesh.setMatrixAt(i, m4); cityMesh.setColorAt(i, tmpColor.set(b.color));
+});
+cityMesh.castShadow = cityMesh.receiveShadow = true; scene.add(cityMesh);
+
+const trees = [];
+function scatterTrees(poly, count, top = G + 0.06) {
+  const xs = poly.map(p => p[0]), ns = poly.map(p => p[1]);
+  for (let tries = 0, placed = 0; placed < count && tries < count * 30; tries++) {
+    const x = Math.min(...xs) + rand() * (Math.max(...xs) - Math.min(...xs));
+    const n = Math.min(...ns) + rand() * (Math.max(...ns) - Math.min(...ns));
+    if (!inPoly(x, n, poly) || PATH_SEGMENTS.some(([a, b]) => distToSegment(x, n, a, b) < 2.2)) continue;
+    trees.push({ x, n, y: top, s: 0.7 + rand() * 0.6 }); placed++;
+  }
+}
+scatterTrees(GG_PARK, 90); scatterTrees(PRESIDIO, 55); scatterTrees(MARIN, 90, G);
+scatterTrees([[100,90],[132,90],[132,-60],[100,-60]], 50, G);
+const treeGeo = new THREE.ConeGeometry(0.8, 2.2, 6); treeGeo.translate(0, 1.1, 0);
+const treeMesh = new THREE.InstancedMesh(treeGeo, new THREE.MeshStandardMaterial({ flatShading: true, roughness: 0.9 }), trees.length);
+const TREE_GREENS = ['#3f8f4a', '#4f9d53', '#2f7a43', '#5aa25a'];
+trees.forEach((t, i) => {
+  m4.compose(new THREE.Vector3(t.x, t.y, -t.n), qIdentity, new THREE.Vector3(t.s, t.s, t.s));
+  treeMesh.setMatrixAt(i, m4); treeMesh.setColorAt(i, tmpColor.set(TREE_GREENS[i % 4]));
+});
+treeMesh.castShadow = true; scene.add(treeMesh);
+
+const clouds = [];
+const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, transparent: true, opacity: 0.75, depthWrite: false });
+for (let i = 0; i < 5; i++) {
+  const c = new THREE.Group();
+  for (let k = 0; k < 4; k++) addMesh(c, new THREE.IcosahedronGeometry(2 + rand() * 2, 0), cloudMat, k * 2.6 - 4, rand() * 1.2, (rand() - 0.5) * 2.5, false).scale.y = 0.65;
+  c.position.set(-120 + rand() * 260, 58 + rand() * 8, -70 + rand() * 130);
+  scene.add(c); clouds.push(c);
+}
+
+/* ---------------------------------------------------------------------
+   STEP 6 — Police cars (appear wherever the police set up a roadblock)
+   --------------------------------------------------------------------- */
+const policeCars = new Map();   // node key -> 3D car
+const SIREN_RED = new THREE.MeshBasicMaterial({ color: 0xff2a2a }), SIREN_BLUE = new THREE.MeshBasicMaterial({ color: 0x2a6bff });
+const SIREN_OFF = new THREE.MeshBasicMaterial({ color: 0x333333 });
+function addPoliceCar(key) {
+  if (policeCars.has(key)) return;
+  const N = NODES[key], g = new THREE.Group();
+  const onWater = N.y < 1;
+  g.position.set(N.x + 2.2, N.y + (onWater ? 0 : 0.05), -(N.n) - 1.2);
+  if (onWater) {   // a police boat instead of a car
+    box(g, 1.4, 0.6, 3, 0, 0.05, 0, mat(0xffffff)); box(g, 1.45, 0.15, 3.05, 0, 0.3, 0, mat(0x234a8c));
+    box(g, 0.9, 0.6, 1, 0, 0.6, -0.3, mat(0xe6eef6));
+  } else {
+    box(g, 1.5, 0.55, 2.8, 0, 0.45, 0, mat(0x1e2230)); box(g, 1.55, 0.3, 1.4, 0, 0.45, 0, mat(0xffffff));
+    box(g, 1.3, 0.5, 1.4, 0, 0.98, 0.1, mat(0x1e2230));
+    box(g, 2.6, 0.5, 0.25, -2.1, 0.45, 0, mat(0xf2b134));   // barrier
+  }
+  const red = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.18, 0.3), SIREN_RED), blue = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.18, 0.3), SIREN_BLUE);
+  red.position.set(-0.25, onWater ? 1 : 1.32, 0.1); blue.position.set(0.25, onWater ? 1 : 1.32, 0.1);
+  g.add(red, blue); g.userData = { red, blue };
+  scene.add(g); policeCars.set(key, g);
+}
+function clearPoliceCars() { for (const g of policeCars.values()) scene.remove(g); policeCars.clear(); }
+
+/* =====================================================================
+   PART B — THE AI CREW
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   STEP 7 — Who the four crew members are
+   Each one gets its own personality. Only the informant gets the secret.
+   --------------------------------------------------------------------- */
+const CREW = [
+  { id: 'ruby', name: 'Ruby',  role: 'leader',      title: 'Leader',      color: '#e63946',
+    persona: 'Calm, careful planner. Your first priority is protecting the crew: nobody gets left behind, nobody gets hurt. You speak in short, steady sentences and you keep the team together.',
+    goal: 'Pull off the job and get every crew member out safe.' },
+  { id: 'sky', name: 'Sky',   role: 'driver',      title: 'Driver',      color: '#3a86ff',
+    persona: 'Nervous, talks fast, second-guesses everything, jumpy about police. But you know every San Francisco street, shortcut, hill and bridge by heart, and your route advice is excellent.',
+    goal: 'Get everyone (especially yourself) out of the city by the smartest route without getting caught.' },
+  { id: 'sunny', name: 'Sunny', role: 'hacker',      title: 'Hacker',      color: '#f4a300',
+    persona: 'You only care about money. You keep pushing for a bigger share of the loot and you bargain at every chance. Cool, sarcastic, a bit greedy. Loyalty depends on the payout.',
+    goal: 'Walk away with the biggest share of the money you can get.' },
+  { id: 'mint', name: 'Mint',  role: 'infiltrator', title: 'Infiltrator', color: '#14a38b',
+    persona: 'Smooth, friendly, good at getting inside places and making people trust you.',
+    secret: 'SECRET THAT ONLY YOU KNOW: you are a police informant working with the SFPD. Nobody in the crew knows. Keep your cover. Each scene you can secretly text the police (or choose not to), and you decide how much to tell them. You may have mixed feelings about the crew.',
+    goal: 'Keep your cover, decide how much to help the police, and come out of this alive and free.' },
+];
+
+/* ---------------------------------------------------------------------
+   STEP 8 — The character figures, speech bubbles, and walking
+   --------------------------------------------------------------------- */
+function makeFigure(color) {
+  const root = new THREE.Group(), facing = new THREE.Group(), body = new THREE.Group();
+  root.add(facing); facing.add(body); body.scale.setScalar(1.35);
+  const cMat = mat(color), skin = mat(0xf6d7b0), dark = mat(0x2b2d42);
+  const limb = (x, y, w, h, material) => {
+    const hinge = new THREE.Group(); hinge.position.set(x, y, 0);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, w), material); m.position.y = -h / 2; m.castShadow = true;
+    hinge.add(m); body.add(hinge); return hinge;
+  };
+  const legL = limb(0.2, 0.65, 0.24, 0.65, dark), legR = limb(-0.2, 0.65, 0.24, 0.65, dark);
+  addMesh(body, new THREE.CylinderGeometry(0.38, 0.5, 1.0, 6), cMat, 0, 1.15, 0);
+  const armL = limb(0.52, 1.55, 0.18, 0.62, cMat), armR = limb(-0.52, 1.55, 0.18, 0.62, cMat);
+  addMesh(body, new THREE.IcosahedronGeometry(0.36, 0), skin, 0, 2.0, 0);
+  addMesh(body, new THREE.ConeGeometry(0.34, 0.42, 6), cMat, 0, 2.42, 0);
+  for (const ex of [-0.12, 0.12]) box(body, 0.07, 0.07, 0.05, ex, 2.03, 0.31, dark, false);
+  const boat = new THREE.Group();
+  box(boat, 1.5, 0.5, 2.6, 0, -0.25, 0, mat(0xf7f7f2)); box(boat, 1.56, 0.12, 2.66, 0, 0.02, 0, cMat, false);
+  const bow = addMesh(boat, new THREE.ConeGeometry(0.75, 0.9, 4), mat(0xf7f7f2), 0, -0.25, 1.7);
+  bow.rotation.set(Math.PI / 2, Math.PI / 4, 0); bow.scale.set(1, 1, 0.45);
+  boat.visible = false; facing.add(boat);
+  return { root, facing, body, legL, legR, armL, armR, boat };
+}
+
+const WALK_SPEED = 12;   // map units per second at 1× speed
+const characters = CREW.map((def, idx) => {
+  const fig = makeFigure(def.color);
+  scene.add(fig.root);
+  const a = idx * Math.PI / 2 + Math.PI / 4;
+  const tagEl = document.createElement('div');
+  tagEl.className = 'tag'; tagEl.textContent = `${def.name} · ${def.title}`; tagEl.style.background = def.color;
+  const tag = new CSS2DObject(tagEl); tag.position.y = 4.3; fig.root.add(tag);
+  const bubbleEl = document.createElement('div');
+  bubbleEl.className = 'bubble'; bubbleEl.style.color = def.color; bubbleEl.style.opacity = '0';
+  // Bubbles alternate left/right and sit at different heights so two crew members in one spot don't cover each other
+  const bubble = new CSS2DObject(bubbleEl); bubble.position.y = 5.2 + idx * 1.3; bubble.center.set(idx % 2 ? 0.05 : 0.95, 1); fig.root.add(bubble);
+  return { ...def, fig, tagEl, bubbleEl, ox: Math.cos(a) * 0.8, on: Math.sin(a) * 0.8,
+           node: 'mission', pos: new THREE.Vector3(), queue: [], yaw: 0, phase: 0, waveUntil: 0, bubbleUntil: 0,
+           status: 'active', share: 25, memory: [], last: null, routeLine: null };
+});
+const pointFor = (key, c) => { const N = NODES[key]; return new THREE.Vector3(N.x + c.ox, N.y, -(N.n + c.on)); };
+function placeAt(c, key) { c.node = key; c.queue = []; c.pos.copy(pointFor(key, c)); }
+characters.forEach(c => placeAt(c, 'mission'));
+
+let clockT = 0;
+// Portraits were made ahead of time with Runware (scripts/generate-images.mjs) and ship with the page in img/
+const portraitUrl = c => `img/portraits/${c.id}.jpg`;
+function bubbleParts(c) {
+  const pf = document.createElement('img'); pf.className = 'pf'; pf.src = portraitUrl(c); pf.alt = '';
+  const body = document.createElement('span'); body.className = 'body';
+  c.bubbleEl.replaceChildren(pf, body);
+  return body;
+}
+function showBubble(c, text, secret = '', seconds = 9) {
+  const body = bubbleParts(c);
+  const who = document.createElement('span'); who.className = 'who'; who.textContent = c.name;
+  const txt = document.createElement('span'); txt.className = 'txt'; txt.textContent = text;
+  body.append(who, txt);
+  if (secret) { const s = document.createElement('span'); s.className = 'sec'; s.textContent = 'Secret text to SFPD: ' + secret; body.append(s); }
+  c.bubbleEl.classList.remove('thinking');
+  c.bubbleEl.style.opacity = '1';
+  c.bubbleUntil = clockT + seconds;
+}
+function showThinking(c) {
+  const body = bubbleParts(c);
+  const who = document.createElement('span'); who.className = 'who'; who.textContent = c.name;
+  const txt = document.createElement('span'); txt.className = 'txt'; txt.textContent = '...';
+  body.append(who, txt); c.bubbleEl.classList.add('thinking'); c.bubbleEl.style.opacity = '1';
+  c.bubbleUntil = clockT + 120;
+}
+function hideBubble(c) { c.bubbleEl.style.opacity = '0'; c.bubbleUntil = 0; }
+
+// Send a character walking (or sailing) along the shortest route to a place
+function walkTo(c, target) {
+  const path = shortestPath(c.node, target);
+  c.queue = path.slice(1).map(k => pointFor(k, c));
+  c.node = target;
+  return path;
+}
+
+function updateCharacter(c, dt, t) {
+  let walking = false;
+  if (c.queue.length) {
+    const next = c.queue[0], step = WALK_SPEED * dt, d = c.pos.distanceTo(next);
+    if (d <= step) { c.pos.copy(next); c.queue.shift(); if (!c.queue.length) c.waveUntil = t + 1.4; }
+    else { c.yaw = Math.atan2(next.x - c.pos.x, next.z - c.pos.z); c.pos.lerp(next, step / d); walking = true; }
+  }
+  const onWater = c.pos.y < 1.5 && !onLand(c.pos.x, -c.pos.z);
+  const f = c.fig;
+  f.boat.visible = onWater;
+  f.root.position.set(c.pos.x, onWater ? BOAT_Y + Math.sin(t * 3 + c.ox) * 0.05 : c.pos.y, c.pos.z);
+  let turn = c.yaw - f.facing.rotation.y; turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+  f.facing.rotation.y += turn * Math.min(1, dt * 8);
+  c.phase += dt * 10;
+  const s = Math.sin(c.phase);
+  f.armR.rotation.z = 0;
+  if (c.status === 'captured' || c.status === 'exposed') {          // hands up
+    f.legL.rotation.x = f.legR.rotation.x = 0; f.armL.rotation.x = f.armR.rotation.x = 0;
+    f.armL.rotation.z = 2.6; f.armR.rotation.z = -2.6; f.body.position.y = 0; return;
+  }
+  f.armL.rotation.z = 0;
+  if (walking && !onWater) {
+    f.legL.rotation.x = s * 0.6; f.legR.rotation.x = -s * 0.6; f.armL.rotation.x = -s * 0.5; f.armR.rotation.x = s * 0.5;
+    f.body.position.y = Math.abs(s) * 0.12;
+  } else if (onWater && walking) {
+    f.legL.rotation.x = f.legR.rotation.x = 0; f.armL.rotation.x = f.armR.rotation.x = -0.7 + s * 0.4; f.body.position.y = 0;
+  } else {
+    f.legL.rotation.x = f.legR.rotation.x = f.armL.rotation.x = f.armR.rotation.x = 0; f.body.position.y = 0;
+    if (t < c.waveUntil) f.armR.rotation.z = -2.5 + Math.sin(t * 12) * 0.35;
+  }
+}
+
+// Dashed line showing a character's planned escape route
+function drawRoute(c, exitKey) {
+  if (c.routeLine) { scene.remove(c.routeLine); c.routeLine.geometry.dispose(); c.routeLine = null; }
+  if (!exitKey || !NODES[exitKey]) return;
+  const path = shortestPath(c.node, exitKey);
+  if (path.length < 2) return;
+  const geo = new THREE.BufferGeometry().setFromPoints(path.map(k => pointFor(k, c).setY(NODES[k].y + 0.35)));
+  const line = new THREE.Line(geo, new THREE.LineDashedMaterial({ color: c.color, dashSize: 1.2, gapSize: 0.8 }));
+  line.computeLineDistances(); line.visible = routesChk.checked;
+  scene.add(line); c.routeLine = line;
+}
+
+/* ---------------------------------------------------------------------
+   STEP 9 — Talking to Claude
+   On claude.ai the page asks Claude through the viewer's own account
+   (the "sample" capability: no API key). Opened anywhere else, it falls back
+   to a no-AI demo so the map and the log still work.
+   --------------------------------------------------------------------- */
+let sample = null, downloads = null;
+const inClaude = !!(window.claude && typeof window.claude.use === 'function');
+const FATAL = new Set(['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed', 'session_expired', 'rate_limited']);
+
+async function askClaude(prompt, tier, signal) {
+  return sample.json(prompt, { modelTier: tier, cache: false, signal });
+}
+
+/* ---------------------------------------------------------------------
+   STEP 10 — The story engine: one run = up to 10 scenes
+   Each scene: (1) the world throws in a random event, (2) each crew member
+   decides in turn, seeing only what the crew can see, (3) they move on the
+   map, (4) a narrator (the "game master") rolls with the dice and decides
+   what happened, (5) police react.
+   --------------------------------------------------------------------- */
+const MAX_SCENES = 10;
+const SCENE_ARC = ['Planning at the hideout', 'Scouting the target', 'Final preparations', 'The job', 'Alarm and getaway',
+                   'Splitting up', 'The chase', 'Trust breaks down', 'Last chance', 'How it ends'];
+const WORLD_EVENTS = [
+  'Thick fog rolls over the Golden Gate Bridge: hard to see, easy to hide.',
+  'A Giants game just ended: the Embarcadero and the Bay Bridge on-ramp are jammed with traffic.',
+  'A cable car is stuck near Lombard Street and tourists fill the crooked street.',
+  'A police helicopter is circling over the Financial District.',
+  'A Coast Guard boat is patrolling the water near Alcatraz.',
+  'The power flickers downtown: cameras near the Transamerica Pyramid go dark for a few minutes.',
+  'A street festival packs the Mission District with music and crowds.',
+  'One lane of the Bay Bridge is closed for night construction.',
+  'Sea lions are barking at Fisherman\'s Wharf and a late-night crowd gathers on the piers.',
+  'Rain makes the steep hills slick and slow.',
+  'A TV news van parks right outside the bank.',
+  'A ferry strike leaves only private boats moving on the Bay.',
+  'A traffic accident blocks part of Chinatown.',
+  'Calm, clear night. The city is quiet. Maybe too quiet.',
+];
+const RUN_TWISTS = [
+  'The vault holds far less cash than the crew believes.',
+  'A rival crew plans to hit the same bank tonight.',
+  'The bank manager is secretly in on it and will leave the back door unlocked.',
+  'The SFPD lieutenant handling Mint\'s tips does not fully trust Mint and may arrest Mint too.',
+  'Sky\'s getaway car has a slow tire leak.',
+  'Sunny has a second buyer who will pay double for the bank\'s server data.',
+  'A storm will close the Golden Gate Bridge to traffic later tonight.',
+  'A federal agent, not SFPD, is also secretly watching the crew.',
+  'The cash is packed with dye packs that might go off.',
+  'Ruby has a cousin with a fast boat docked at Fisherman\'s Wharf.',
+];
+const STATUSES = ['active', 'hiding', 'escaped', 'captured', 'exposed'];
+const OUT = new Set(['escaped', 'captured', 'exposed']);
+
+const S = {   // everything about the current run
+  runId: '', scene: 0, heat: 0, loot: 0, running: false, token: 0, ctl: null,
+  twist: '', events: [], event: '', situation: '', roadblocks: new Set(), pendingTips: [],
+  feed: [], rows: [], step: 0, lang: 'en', ending: null,
+};
+
+const $ = id => document.getElementById(id);
+const entries = $('entries'), routesChk = $('routesChk');
+let speed = 1.5;
+const sleep = (ms, token) => new Promise(res => setTimeout(() => res(token === S.token), ms / speed));
+const money = v => v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${Math.round(v / 1e3)}K` : `$${v}`;
+const heatWords = h => h < 25 ? 'quiet: police are not paying attention' : h < 50 ? 'police are getting curious'
+                    : h < 75 ? 'police are actively hunting the crew' : 'citywide manhunt';
+const placeName = k => NODES[k]?.name ?? k;
+const langName = () => S.lang === 'ko' ? 'Korean (한국어)' : 'English';
+const d20 = () => 1 + Math.floor(Math.random() * 20);
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+/* --- Cutscenes: pre-made Runware images shown for big moments (arrest, escape, betrayal, the heist) --- */
+const CUT_SECONDS = 5;
+const cutQueue = [], cutWaiters = [];
+let cutShowing = false, cutTimer = null;
+function queueCutscene(file, title, caption) {
+  cutQueue.push({ file, title, caption });
+  logCutscene(title);
+  addRow({ kind: 'cutscene', speaker: 'Cutscene', action: title, said: caption, note: `img/cutscenes/${file}.jpg` });
+  if (!cutShowing) nextCutscene();
+}
+function nextCutscene() {
+  clearTimeout(cutTimer);
+  const next = cutQueue.shift();
+  if (!next) {
+    cutShowing = false; $('cutscene').hidden = true;
+    cutWaiters.splice(0).forEach(r => r());
+    return;
+  }
+  cutShowing = true;
+  $('cutImg').src = `img/cutscenes/${next.file}.jpg`;
+  $('cutTitle').textContent = next.title;
+  $('cutCap').textContent = next.caption || '';
+  $('cutscene').hidden = false;
+  cutTimer = setTimeout(nextCutscene, CUT_SECONDS * 1000);
+}
+/* --- Voices: each character speaks their lines in their own voice ---
+   On claude.ai: Claude's built-in voices (the "tts" capability).
+   Anywhere else: the browser's own voices, told apart by pitch and speed. */
+let tts = null, voicesOn = true;
+const VOICES = {
+  ruby:  { voice: 'rounded', rate: 0.95, pitch: 0.9,  idx: 0 },   // calm, steady
+  sky:   { voice: 'airy',    rate: 1.2,  pitch: 1.25, idx: 1 },   // nervous, talks fast
+  sunny: { voice: 'glassy',  rate: 1.05, pitch: 1.1,  idx: 2 },   // cool, sarcastic
+  mint:  { voice: 'buttery', rate: 1.0,  pitch: 0.85, idx: 3 },   // smooth, friendly
+};
+function voiceNote(text) { $('voiceNote').textContent = text; }
+function webSpeak(text, v, language) {
+  if (!('speechSynthesis' in window)) return null;
+  return new Promise(res => {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = language === 'ko' ? 'ko-KR' : 'en-US';
+    const list = speechSynthesis.getVoices().filter(x => x.lang.toLowerCase().startsWith(language));
+    if (list.length) u.voice = list[v.idx % list.length];
+    u.pitch = v.pitch; u.rate = v.rate;
+    u.onend = u.onerror = () => res();
+    speechSynthesis.speak(u);
+  });
+}
+async function speakLine(c, text) {
+  if (!voicesOn || !text || text === '…') return;
+  const v = VOICES[c.id], language = S.lang === 'ko' ? 'ko' : 'en';
+  const p = tts ? tts.speak([{ text: text.slice(0, 1900), voice: v.voice, rate: v.rate, language, id: c.id }])
+                : webSpeak(text, v, language);
+  if (!p) return;
+  try { await Promise.race([p, new Promise(r => setTimeout(r, 25000))]); }   // never let one line hold the story up
+  catch (e) { handleVoiceError(e); }
+}
+function handleVoiceError(e) {
+  if (e?.code === 'not_granted' || e?.code === 'unavailable') {
+    voicesOn = false; $('voiceChk').checked = false; $('voiceChk').disabled = true;
+    voiceNote('Voices are turned off for this page. You can turn reading aloud back on in the page\'s Permissions menu.');
+  } else if (e?.code === 'stopped' && e.reason === 'viewer_stopped') {
+    voicesOn = false; $('voiceChk').checked = false;
+    voiceNote('Voices paused because you pressed Stop. Tick Voices to hear them again.');
+  } else if (e?.code === 'no_gesture') {
+    voiceNote('Click anywhere on the page so the voices can play.');
+  } else if (e?.code === 'rate_limited') {
+    voiceNote('Too much speech for now. Voices will try again on the next line.');
+  }
+}
+function stopVoices() {
+  tts?.stop().catch(() => {});
+  if (!tts && 'speechSynthesis' in window) speechSynthesis.cancel();
+}
+
+function cutscenesDone() { return cutShowing ? new Promise(r => cutWaiters.push(r)) : Promise.resolve(); }
+function clearCutscenes() { cutQueue.length = 0; nextCutscene(); }
+const quoted = s => s ? `"${s}"` : '';
+
+/* --- Memory: the trust table from past runs ---
+   Built on your computer by the Bruin pipeline (pipelines/trust) into trust.json.
+   The page reads trust.json (published next to it), or one you load with "Load trust.json",
+   whichever is newer. Each agent only gets what it could know: the informant's secret
+   texts are told to the informant, not to the others, unless the informant was exposed. */
+let memory = null;
+const validMemory = m => m && typeof m === 'object' && Number.isFinite(Number(m.runs));
+async function loadMemory() {
+  let fromFile = null, fromLoaded = null;
+  try { const r = await fetch('trust.json', { cache: 'no-store' }); if (r.ok) fromFile = await r.json(); } catch { /* no trust.json yet */ }
+  try { fromLoaded = JSON.parse(localStorage.getItem('transamericaJobTrust') || 'null'); } catch { /* storage unavailable */ }
+  memory = [fromFile, fromLoaded].filter(validMemory)
+    .sort((a, b) => String(b.generated_at).localeCompare(String(a.generated_at)))[0] || null;
+  renderTrust();
+}
+const trustRow = (from, to) => (memory?.trust || []).find(t => t.truster === from && t.trustee === to);
+function trustReasons(t) {
+  const why = [];
+  if (t.times_exposed) why.push(`was exposed as a police informant ${t.times_exposed}x`);
+  if (t.times_left_behind) why.push(`escaped and left you to be arrested ${t.times_left_behind}x`);
+  if (t.greedy_runs) why.push(`pushed for a bigger share in ${t.greedy_runs} jobs`);
+  if (t.escaped_together) why.push(`got away together with you ${t.escaped_together}x`);
+  return why;
+}
+function memoryFor(c) {
+  if (!memory || !Number(memory.runs)) return '';
+  const lines = [];
+  const h = (memory.history || []).find(x => x.name === c.name);
+  if (h) lines.push(`Your record: ${h.runs} past jobs. Escaped ${h.escaped}, arrested ${h.captured}${h.exposed ? `, cover blown ${h.exposed}` : ''}.`);
+  for (const other of characters) {
+    if (other === c) continue;
+    const t = trustRow(c.name, other.name);
+    if (!t) continue;
+    const why = trustReasons(t);
+    lines.push(`Your trust in ${other.name}: ${t.trust_score}/100 (${why.length ? other.name + ' ' + why.join('; ') : 'nothing notable yet'}).`);
+  }
+  if (c.role === 'infiltrator' && h) lines.push(`Only you know this: across past jobs you secretly texted the police ${h.tips_sent} times.`);
+  const recent = (memory.recent_runs || []).slice(0, 3).map(r => `"${r.ending_title || 'unfinished'}" (${r.final_statuses || 'no result'})`);
+  if (recent.length) lines.push(`How the last jobs ended: ${recent.join('; ')}.`);
+  return `MEMORY OF PAST JOBS WITH THIS SAME CREW (${memory.runs} earlier runs):
+${lines.map(l => '- ' + l).join('\n')}
+Let these memories shape whom you trust, what you share, whom you cover for and which escape route you pick. Below 40 you are openly wary of that person; above 80 you rely on them.`;
+}
+function trustHeadline() {   // short summary for the narrator and the log
+  if (!memory || !Number(memory.runs)) return '';
+  const rows = (memory.trust || []).filter(t => t.trust_score <= 45 || t.trust_score >= 85)
+    .map(t => `${t.truster} trusts ${t.trustee} ${t.trust_score}/100`);
+  return rows.length ? rows.join('; ') : 'trust is about even across the crew';
+}
+function renderTrust() {
+  const grid = $('trustGrid'), note = $('trustNote');
+  grid.replaceChildren();
+  if (!memory || !Number(memory.runs)) {
+    note.textContent = 'No past runs yet. Save a run\'s log, run the Bruin pipeline, then load trust.json.';
+    return;
+  }
+  grid.append(el('span', 'th rh', ''));
+  for (const c of characters) grid.append(el('span', 'th', c.name));
+  for (const from of characters) {
+    const rh = el('span', 'th rh', from.name); rh.style.color = from.color; grid.append(rh);
+    for (const to of characters) {
+      if (from === to) { grid.append(el('span', 'cell self', '–')); continue; }
+      const t = trustRow(from.name, to.name);
+      const cell = el('span', 'cell', t ? String(t.trust_score) : '?');
+      if (t) {
+        cell.style.color = `color-mix(in srgb, var(--ok) ${t.trust_score}%, var(--danger))`;
+        const why = trustReasons(t);
+        cell.title = `${from.name} trusts ${to.name}: ${t.trust_score}/100${why.length ? ' because ' + to.name + ' ' + why.join('; ') : ''}`;
+      }
+      grid.append(cell);
+    }
+  }
+  note.textContent = `From ${memory.runs} past runs · rows trust columns · updated ${String(memory.generated_at).slice(0, 16)}`;
+}
+async function loadTrustFile(file) {
+  try {
+    const m = JSON.parse(await file.text());
+    if (!validMemory(m)) throw new Error('not a trust table');
+    memory = m;
+    try { localStorage.setItem('transamericaJobTrust', JSON.stringify(m)); } catch { /* kept for this visit only */ }
+    renderTrust();
+  } catch {
+    $('trustNote').textContent = 'That file is not a trust.json from the Bruin pipeline. Pick the trust.json in the project folder.';
+  }
+}
+
+function crewStatusLines(viewer) {
+  return characters.map(c => {
+    const st = c.status === 'active' ? 'active' : c.status;
+    const you = c === viewer ? ' (you)' : '';
+    return `- ${c.name}${you}, ${c.title}: at ${placeName(c.node)} [${c.node}], status ${st}, wants a ${c.share}% share`;
+  }).join('\n');
+}
+function placesList() {
+  return PICKABLE.map(k => `- ${k}: ${NODES[k].name} (${NODES[k].desc})`).join('\n');
+}
+
+function agentPrompt(c, thisScene) {
+  const isInf = c.role === 'infiltrator';
+  const feed = S.feed.slice(-16).join('\n') || '(nothing yet)';
+  const now = thisScene.length ? thisScene.join('\n') : '(you are the first to act this scene)';
+  const mem = c.memory.slice(-4).join('\n') || '(none yet)';
+  const blocks = [...S.roadblocks].map(placeName).join(', ') || 'none reported';
+  return `You are ${c.name}, the ${c.title} of a four-person crew in an interactive caper story set in San Francisco.
+This is fiction in the tone of a PG-13 heist movie: clever plans, tension, banter. No real-world crime techniques, no weapons talk, no graphic violence.
+
+YOUR PERSONALITY: ${c.persona}
+YOUR GOAL: ${c.goal}
+${isInf ? c.secret + '\n' : ''}
+THE CREW: Ruby (Leader), Sky (Driver), Sunny (Hacker), Mint (Infiltrator).
+THE PLAN: rob Bank of the Bay, the bank right next to the Transamerica Pyramid, then get out of the city.
+
+SCENE ${S.scene} of ${MAX_SCENES} (${SCENE_ARC[S.scene - 1]}).
+Situation: ${S.situation}
+World event right now: ${S.event}
+Police heat: ${S.heat}/100 (${heatWords(S.heat)}). Police roadblocks seen at: ${blocks}.
+Money taken so far: ${money(S.loot)}.
+
+WHERE EVERYONE IS:
+${crewStatusLines(c)}
+
+WHAT THE CREW HAS SEEN AND HEARD (public):
+${feed}
+
+THIS SCENE SO FAR:
+${now}
+
+YOUR PRIVATE NOTES FROM EARLIER SCENES (only you remember these):
+${mem}
+${memoryFor(c) ? '\n' + memoryFor(c) + '\n' : ''}
+PLACES YOU CAN GO (use the key in "move_to"). Exits are the only ways to actually escape:
+${placesList()}
+You are now at: ${c.node}. To stay put, use "${c.node}".
+
+Decide what YOU do this scene. Act from your personality and goal, react to what the others said, and keep the story moving.
+Reply with only this JSON object:
+{
+  "say": "what you say out loud to the crew, in character, max 25 words",
+  "action": "what you visibly do this scene, max 20 words",
+  "move_to": "one place key from the list",
+  "escape_exit": "your planned way out: marin, oakland or openBay",
+  "escape_route": "your planned escape route as places, e.g. Bank -> Lombard Street -> Golden Gate Bridge -> Marin Headlands",
+  "share_wanted": a whole number from 0 to 100 (the % of the loot you want),
+  "reason": "your private reason for this decision, max 30 words (the crew never sees this)"${isInf ? `,
+  "tip_police": "what you secretly text the SFPD this scene, max 25 words, or an empty string to send nothing",
+  "tip_location": "a place key you point the police to, or none"` : ''}
+}
+Write say, action, escape_route, reason${isInf ? ' and tip_police' : ''} in ${langName()}. Keep keys and place keys in English exactly as listed.`;
+}
+
+function directorPrompt(decisions, mode) {
+  const lines = decisions.map(d => {
+    const c = d.c;
+    return `- ${c.name} (${c.title}), status before: ${c.statusBefore}. Moved ${placeName(d.from)} -> ${placeName(c.node)}${NODES[c.node].exit ? ' (an EXIT)' : ''}.
+  said: "${d.say}" | did: ${d.action} | private reason: ${d.reason}${d.tip ? ` | SECRET tip to police: "${d.tip}" (pointing to ${placeName(d.tipLocation)})` : ''}
+  route passed police roadblock: ${d.hitPolice ? 'YES at ' + d.hitPolice : 'no'} | dice roll d20: ${d.roll}`;
+  }).join('\n') || '(no crew decisions this time)';
+  const out = characters.filter(c => OUT.has(c.status)).map(c => `${c.name}: ${c.status}`).join(', ') || 'nobody';
+  let prev = [];
+  try { prev = JSON.parse(localStorage.getItem('transamericaJobEndings') || '[]'); } catch { prev = []; }
+  const final = mode === 'final' || mode === 'epilogue';
+  return `You are the game master of an interactive caper story in San Francisco (PG-13 heist-movie tone, no real crime techniques, no graphic violence).
+Four AI characters each decided their own actions. You decide what actually happens, fairly, using their decisions and the dice.
+
+SECRET RUN TWIST (only you know it; let it surface naturally at some point): ${S.twist}
+The informant is Mint (secretly helping the SFPD). The crew does not know this.
+
+SCENE ${S.scene} of ${MAX_SCENES} (${SCENE_ARC[S.scene - 1] ?? 'Epilogue'}).
+Situation: ${S.situation}
+World event: ${S.event}
+Police heat: ${S.heat}/100. Police roadblocks at: ${[...S.roadblocks].map(placeName).join(', ') || 'none'}.
+Money taken so far: ${money(S.loot)}.
+Already out of the story: ${out}.
+${trustHeadline() ? `Crew history from ${memory.runs} earlier runs (the characters remember this): ${trustHeadline()}. Let old grudges and loyalties show in what happens.\n` : ''}
+DECISIONS THIS SCENE:
+${lines}
+
+RULES:
+- Dice: 1-5 things go wrong, 6-10 mixed, 11-15 mostly works, 16-20 goes great. Respect the dice.
+- "escaped" is only allowed for a character who ended this scene at an EXIT (marin, oakland, openBay), usually with a roll of 9 or more and no police on their route.
+- "captured" mostly happens when a route passed a police roadblock or heat is 70+, together with a low roll.
+- "hiding" means lying low somewhere in the city. "active" means still in play.
+- "exposed" is only for Mint, when the crew finds out Mint is the informant (needs real suspicion in the story and a bad roll for Mint). Not before scene 5.
+- The robbery: when crew members go to the bank and try, decide with the dice whether they get money. Set loot_change to the amount gained this scene (between 300000 and 4000000) or 0. Robbery normally happens around scenes 3-5.
+- heat_change: from -20 to +35. A robbery or a chase raises heat. Mint's tips can raise it.
+- The narration is what the crew can see. Never reveal Mint's secret tips in it unless Mint is exposed.
+- Keep the story moving toward an ending. Different runs should end differently.
+${final ? `- THIS IS THE END OF THE STORY. Write the ending now. Every character still active or hiding gets a fitting final fate in the epilogue.
+- Earlier runs ended like this; make this ending clearly different: ${prev.length ? prev.join(' | ') : '(no earlier runs)'}` : '- Set "ending" to null.'}
+
+Reply with only this JSON object:
+{
+  "narration": "what happened this scene, 2-3 vivid sentences",
+  "outcomes": { "Ruby": {"status": "active|hiding|escaped|captured|exposed", "note": "max 12 words"}, "Sky": {...}, "Sunny": {...}, "Mint": {...} },
+  "heat_change": a whole number,
+  "loot_change": a whole number,
+  "next_situation": "1-2 sentences setting up the next scene${final ? ' (can be empty)' : ''}",
+  "ending": ${final ? '{"title": "a short ending title, max 6 words", "epilogue": "3-4 sentences on how it ends for each of the four", "who_got_what": "one line on who ended up with the money"}' : 'null'}
+}
+Write narration, notes, next_situation and ending text in ${langName()}. Keep JSON keys and status words in English.`;
+}
+
+/* --- No-AI demo versions (used only when Claude isn't available) --- */
+const DEMO_LINES = {
+  leader: ['Stay calm. We do this clean and nobody gets hurt.', 'Everyone check in. We move on my signal.', 'If it goes wrong we split up and meet across the water.', 'Nobody gets left behind. Not tonight.'],
+  driver: ['Okay okay, Lombard is a nightmare, take Columbus instead!', 'Bridges are traps if the cops are smart. Water is better. Maybe.', 'I know a shortcut, trust me, I think, yes, trust me.', 'Did you hear that siren? Was that a siren?'],
+  hacker: ['Cameras are mine. My share just went up, by the way.', 'Forty percent, or I go home. Your call.', 'Money first, feelings later.', 'Nice plan. Nicer if I get paid more.'],
+  infiltrator: ['I can get us through the side door. Trust me.', 'Relax, everyone. I have done this before.', 'Let\'s not rush. Better we stick together.', 'I\'ll keep watch out front.'],
+};
+function demoDecision(c) {
+  const sc = S.scene;
+  let move = c.node;
+  if (sc === 1) move = 'mission';
+  else if (sc <= 3) move = pick(['soma', 'transamerica', 'chinatown', 'bank']);
+  else if (sc === 4) move = 'bank';
+  else move = pick([...EXITS, ...EXITS, 'lombard', 'chinatown', 'alcatraz', 'wharf', 'goldenGate', 'bayBridge']);
+  const exit = pick(EXITS);
+  const d = { say: pick(DEMO_LINES[c.role]), action: `heads to ${placeName(move)}`, move_to: move, escape_exit: exit,
+              escape_route: shortestPath(move, exit).filter(k => NODES[k].pick).map(placeName).join(' -> '),
+              share_wanted: c.role === 'hacker' ? 30 + 5 * Math.floor(Math.random() * 6) : 25,
+              reason: '(demo mode: no AI, random choice)' };
+  // Memory shows even without AI: a crew member who distrusts someone says so
+  const wary = characters.filter(o => o !== c).map(o => ({ o, t: trustRow(c.name, o.name)?.trust_score ?? 70 })).sort((a, b) => a.t - b.t)[0];
+  if (wary && wary.t < 40 && Math.random() < 0.5) {
+    d.say = `I haven't forgotten last time, ${wary.o.name}. I'm watching you.`;
+    d.reason = `(demo mode) trust in ${wary.o.name} is only ${wary.t}/100 after past runs`;
+  }
+  if (c.role === 'infiltrator') {
+    const tip = Math.random() < 0.5;
+    d.tip_police = tip ? `Crew heading toward ${placeName(exit)}.` : '';
+    d.tip_location = tip ? exit : 'none';
+  }
+  return d;
+}
+function demoDirector(decisions, mode) {
+  const outcomes = {};
+  let loot = 0;
+  for (const d of decisions) {
+    let st = d.c.status;
+    if (d.c.node === 'bank' && S.loot === 0 && d.roll >= 8) loot = 1500000 + Math.round(Math.random() * 1500000);
+    if (NODES[d.c.node].exit && d.roll >= 9 && !d.hitPolice) st = 'escaped';
+    else if (d.hitPolice && d.roll < 10) st = 'captured';
+    outcomes[d.c.name] = { status: st, note: '(demo)' };
+  }
+  const final = mode === 'final' || mode === 'epilogue';
+  return { narration: `(Demo mode, no AI.) Scene ${S.scene}: the crew moves through ${S.event.toLowerCase()}`, outcomes,
+           heat_change: loot ? 30 : Math.round(Math.random() * 15), loot_change: loot,
+           next_situation: 'The night goes on, and the police are getting closer.',
+           ending: final ? { title: pick(['Clean Getaway', 'Nobody Walks Away Rich', 'The Long Way Home']),
+                             epilogue: '(Demo mode: open this page on claude.ai for real AI endings.)', who_got_what: '' } : null };
+}
+
+/* --- Making sense of what the AI sent back --- */
+const clip = (v, n) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
+function cleanDecision(c, raw) {
+  const o = raw && typeof raw === 'object' ? raw : {};
+  const move = PICKABLE.includes(o.move_to) ? o.move_to : c.node;
+  const exit = EXITS.includes(o.escape_exit) ? o.escape_exit : null;
+  let share = Math.round(Number(o.share_wanted));
+  if (!Number.isFinite(share)) share = c.share;
+  const d = { say: clip(o.say, 220) || '…', action: clip(o.action, 180), move_to: move, escape_exit: exit,
+              escape_route: clip(o.escape_route, 200), share_wanted: Math.max(0, Math.min(100, share)), reason: clip(o.reason, 260) };
+  if (c.role === 'infiltrator') {
+    d.tip_police = clip(o.tip_police, 220);
+    d.tip_location = PICKABLE.includes(o.tip_location) ? o.tip_location : null;
+    if (!d.tip_police) d.tip_location = null;
+  }
+  return d;
+}
+
+/* --- One full run --- */
+function resetRun() {
+  S.token++;
+  S.runId = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
+  clearCutscenes();
+  Object.assign(S, { scene: 0, heat: 0, loot: 0, events: [], event: '', roadblocks: new Set(), pendingTips: [], feed: [], rows: [], step: 0, ending: null, tipCutShown: false,
+                     twist: pick(RUN_TWISTS), lang: $('lang').value,
+                     situation: 'Night before the job. At the Mission District hideout the crew spreads a map on the table. The target is Bank of the Bay, right next to the Transamerica Pyramid, where a big cash delivery arrives tonight. Nobody has agreed yet on roles, shares or escape routes.' });
+  clearPoliceCars();
+  characters.forEach(c => { placeAt(c, 'mission'); c.status = 'active'; c.share = 25; c.memory = []; c.last = null; hideBubble(c); drawRoute(c, null); c.tagEl.classList.remove('out'); });
+  entries.replaceChildren();
+  renderMeters(); renderMembers();
+}
+
+async function startRun() {
+  if (S.running) return;
+  S.running = true; updateButtons();
+  await loadMemory();               // the trust table from past runs becomes each agent's memory
+  resetRun();
+  const token = S.token;
+  addRow({ kind: 'run_start', speaker: 'System', note: `${sample ? 'AI run' : 'Demo run (no AI)'}; secret twist: ${S.twist}` });
+  logNote(`New run ${S.runId} · ${sample ? 'AI crew' : 'demo mode, no AI'}`, '');
+  if (memory && Number(memory.runs)) {
+    logNote(`Memory from ${memory.runs} past runs: ${trustHeadline()}.`);
+    addRow({ kind: 'memory', speaker: 'System', note: `${memory.runs} past runs; ${trustHeadline()}`,
+             reason: characters.map(c => `${c.name}: ${characters.filter(o => o !== c).map(o => `${o.name} ${trustRow(c.name, o.name)?.trust_score ?? '?'}`).join(', ')}`).join(' | ') });
+  } else {
+    logNote('No memory yet: this crew has no saved past runs.');
+  }
+  try {
+    for (S.scene = 1; S.scene <= MAX_SCENES; S.scene++) {
+      const done = await playScene(token);
+      if (token !== S.token) return;
+      if (done) break;
+    }
+  } catch (e) {
+    if (token === S.token) logError(e?.message ? `Run stopped: ${e.message}` : 'Run stopped.');
+  } finally {
+    if (token === S.token) { S.running = false; setBusy(''); updateButtons(); }
+  }
+}
+
+function stopRun() {
+  if (!S.running) return;
+  S.token++; S.ctl?.abort(); S.running = false;
+  clearCutscenes(); stopVoices();
+  characters.forEach(hideBubble); setBusy('');
+  logNote('Run stopped.', '');
+  addRow({ kind: 'run_stopped', speaker: 'System' });
+  updateButtons();
+}
+
+async function playScene(token) {
+  // 1. The world: a random event, and police react to earlier tips and heat
+  S.event = pick(WORLD_EVENTS.filter(e => !S.events.includes(e)));
+  S.events.push(S.event);
+  if (S.scene > 1) policeReact();
+  logScene();
+  logEvent(`World event: ${S.event}`);
+  addRow({ kind: 'event', speaker: 'World', said: S.event, note: `situation: ${S.situation}`, roadblocks: [...S.roadblocks].join(' ') });
+  setTicker(`Scene ${S.scene} · ${SCENE_ARC[S.scene - 1]}`, S.situation);
+  renderMeters();
+  if (!await sleep(900, token)) return true;
+
+  // 2. Each crew member still in play decides, one after another (the Leader goes first)
+  const inPlay = characters.filter(c => !OUT.has(c.status));
+  const order = [inPlay.find(c => c.role === 'leader'), ...inPlay.filter(c => c.role !== 'leader').sort(() => Math.random() - 0.5)].filter(Boolean);
+  const thisScene = [], decisions = [];
+  for (const c of order) {
+    c.statusBefore = c.status;
+    setBusy(`${c.name} (${c.title}) is deciding…`);
+    showThinking(c);
+    let d, note = '';
+    if (sample) {
+      S.ctl = new AbortController();
+      try { d = cleanDecision(c, await askClaude(agentPrompt(c, thisScene), 'quick', S.ctl.signal)); }
+      catch (e) {
+        if (token !== S.token) return true;
+        if (FATAL.has(e?.code)) { stopForError(e); return true; }
+        d = cleanDecision(c, { say: '…', action: 'hesitates', move_to: c.node, reason: '' });
+        note = `AI call failed (${e?.code || 'error'}); ${c.name} stays put this scene.`;
+      }
+    } else {
+      await sleep(500, token);
+      d = cleanDecision(c, demoDecision(c));
+    }
+    if (token !== S.token) return true;
+
+    const from = c.node;
+    const path = walkTo(c, d.move_to);
+    const hit = path.find(k => S.roadblocks.has(k));
+    c.share = d.share_wanted;
+    c.last = d;
+    c.memory.push(`Scene ${S.scene}: I went to ${placeName(d.move_to)} because ${d.reason}${d.tip_police ? ` I secretly told police: "${d.tip_police}".` : ''}`);
+    if (d.tip_police) S.pendingTips.push(d.tip_location || d.escape_exit || d.move_to);
+    showBubble(c, d.say, d.tip_police, 10);
+    drawRoute(c, d.escape_exit);
+    thisScene.push(`- ${c.name} (${c.title}) said: "${d.say}" and ${d.action || 'acted'}; heading to ${placeName(d.move_to)}.`);
+    const roll = d20();
+    decisions.push({ c, from, ...d, tip: d.tip_police, tipLocation: d.tip_location, hitPolice: hit ? placeName(hit) : '', roll });
+    logDecision(c, from, d, roll, note);
+    if (d.tip_police && !S.tipCutShown) {          // the informant's first betrayal of the crew
+      S.tipCutShown = true;
+      queueCutscene('betrayal_tip', `${c.name} secretly texts the police`, quoted(d.tip_police));
+    }
+    addRow({ kind: 'decision', speaker: c.name, role: c.title, location_before: placeName(from), move_to: placeName(d.move_to),
+             escape_exit: d.escape_exit ? placeName(d.escape_exit) : '', escape_route: d.escape_route, share_wanted: d.share_wanted,
+             said: d.say, action: d.action, reason: d.reason, secret_tip: d.tip_police || '', dice: roll, note: [note, hit ? `route passes police at ${placeName(hit)}` : ''].filter(Boolean).join('; ') });
+    renderMembers();
+    await speakLine(c, d.say);        // the character says the line out loud; the next one waits their turn
+    if (!await sleep(voicesOn ? 250 : 600, token)) return true;
+  }
+
+  // 3. Wait for everyone to arrive on the map
+  setBusy('The crew is on the move…');
+  await waitForArrivals(token);
+  if (token !== S.token) return true;
+
+  // 4. The narrator decides what happened
+  const isLast = S.scene >= MAX_SCENES;
+  const res = await resolve(decisions, isLast ? 'final' : 'scene', token);
+  if (token !== S.token || !res) return true;
+  applyOutcome(res, decisions);
+  await cutscenesDone();
+  if (token !== S.token) return true;
+  S.feed.push(...decisions.map(d => `Scene ${S.scene}: ${d.c.name} said "${d.say}" and ${d.action || 'acted'} (went to ${placeName(d.c.node)}).`));
+  S.feed.push(`Scene ${S.scene} result: ${res.narration}`);
+
+  // 5. End of the story?
+  const nobodyLeft = characters.every(c => OUT.has(c.status));
+  if (isLast) { finish(res.ending); return true; }
+  if (nobodyLeft) {
+    const epi = await resolve([], 'epilogue', token);
+    if (token !== S.token) return true;
+    finish(epi?.ending); return true;
+  }
+  S.situation = clip(res.next_situation, 400) || S.situation;
+  return !await sleep(2500, token);
+}
+
+async function resolve(decisions, mode, token) {
+  setBusy(mode === 'scene' ? 'The narrator is deciding what happens…' : 'The narrator is writing the ending…');
+  if (!sample) { await sleep(700, token); return demoDirector(decisions, mode); }
+  S.ctl = new AbortController();
+  try {
+    const r = await askClaude(directorPrompt(decisions, mode), 'default', S.ctl.signal);
+    return r && typeof r === 'object' ? r : demoDirector(decisions, mode);
+  } catch (e) {
+    if (token !== S.token) return null;
+    if (FATAL.has(e?.code)) { stopForError(e); return null; }
+    logError(`Narrator AI call failed (${e?.code || 'error'}). Using a simple dice result instead.`);
+    return demoDirector(decisions, mode);
+  }
+}
+
+function applyOutcome(res, decisions) {
+  const changes = [], cuts = [];
+  const lootBefore = S.loot;
+  for (const c of characters) {
+    if (OUT.has(c.status)) continue;
+    const o = res.outcomes?.[c.name];
+    let st = STATUSES.includes(String(o?.status).toLowerCase()) ? String(o.status).toLowerCase() : c.status;
+    if (st === 'escaped' && !NODES[c.node].exit) st = 'hiding';
+    if (st === 'exposed' && c.role !== 'infiltrator') st = c.status;
+    if (st !== c.status) changes.push(`${c.name}: ${c.status} → ${st}${o?.note ? ` (${clip(o.note, 80)})` : ''}`);
+    // Big moments get a cutscene, captioned with what the agent actually said and decided
+    const note = clip(o?.note, 120);
+    if (st !== c.status && st === 'captured')
+      cuts.push(['arrest_' + c.id, `${c.name} is arrested`, [quoted(c.last?.say), note].filter(Boolean).join(' · ')]);
+    if (st !== c.status && st === 'escaped')
+      cuts.push([`escape_${c.id}_${c.node}`, `${c.name} escapes to ${placeName(c.node)}`, [c.last?.escape_route, note].filter(Boolean).join(' · ')]);
+    if (st !== c.status && st === 'exposed')
+      cuts.push(['betrayal_exposed', `${c.name}'s cover is blown`, [note, c.last?.tip_police ? `Last secret text: ${quoted(c.last.tip_police)}` : ''].filter(Boolean).join(' · ')]);
+    c.status = st;
+    if (st === 'captured') { placeAt(c, 'sfpd'); drawRoute(c, null); }
+    if (st === 'exposed') { walkTo(c, 'sfpd'); drawRoute(c, null); }
+    if (st === 'escaped') drawRoute(c, null);
+    if (OUT.has(st)) c.tagEl.classList.add('out');
+  }
+  const dh = Math.max(-20, Math.min(35, Math.round(Number(res.heat_change) || 0)));
+  const dl = Math.max(0, Math.min(4000000, Math.round(Number(res.loot_change) || 0)));
+  S.heat = Math.max(0, Math.min(100, S.heat + dh));
+  S.loot += dl;
+  const narration = clip(res.narration, 600) || '…';
+  characters.forEach(hideBubble);
+  setTicker(`Scene ${S.scene} · what happened`, narration);
+  logNarration(narration, changes, dh, dl);
+  if (dl > 0 && lootBefore === 0) queueCutscene('heist', `The crew hits Bank of the Bay: ${money(dl)}`, narration);
+  for (const [file, title, caption] of cuts) queueCutscene(file, title, caption);
+  addRow({ kind: 'narration', speaker: 'Narrator', said: narration, note: changes.join('; '),
+           status_after: characters.map(c => `${c.name}=${c.status}`).join(' ') });
+  renderMeters(); renderMembers();
+}
+
+// Police react between scenes: tips from the informant and high heat create roadblocks
+function policeReact() {
+  const added = [];
+  for (const k of S.pendingTips) if (NODES[k] && Math.random() < 0.75 && S.roadblocks.size < 5 && !S.roadblocks.has(k)) { S.roadblocks.add(k); added.push(k); }
+  S.pendingTips = [];
+  if (S.heat >= 55 && Math.random() < 0.55) {
+    const k = pick(['goldenGate', 'bayBridge', 'wharf', 'lombard', 'chinatown', 'soma']);
+    if (!S.roadblocks.has(k) && S.roadblocks.size < 5) { S.roadblocks.add(k); added.push(k); }
+  }
+  if (S.heat < 30 && S.roadblocks.size && Math.random() < 0.4) S.roadblocks.delete([...S.roadblocks][0]);
+  clearPoliceCars();
+  for (const k of S.roadblocks) addPoliceCar(k);
+  if (added.length) S.feed.push(`Scene ${S.scene}: police roadblocks spotted at ${added.map(placeName).join(', ')}.`);
+}
+
+function finish(ending) {
+  const e = ending && typeof ending === 'object' ? ending : {};
+  const title = clip(e.title, 80) || 'The End';
+  const epilogue = clip(e.epilogue, 900);
+  const moneyText = clip(e.who_got_what, 300);
+  S.ending = title;
+  try {
+    const prev = JSON.parse(localStorage.getItem('transamericaJobEndings') || '[]');
+    prev.push(`${title}: ${characters.map(c => `${c.name} ${c.status}`).join(', ')}`);
+    localStorage.setItem('transamericaJobEndings', JSON.stringify(prev.slice(-6)));
+  } catch { /* storage unavailable: endings still vary through dice and events */ }
+  setTicker('The end · ' + title, epilogue || 'The story is over.');
+  logEnding(title, epilogue, moneyText);
+  addRow({ kind: 'ending', speaker: 'Narrator', said: epilogue, action: title, note: moneyText,
+           status_after: characters.map(c => `${c.name}=${c.status}`).join(' ') });
+  characters.forEach(c => drawRoute(c, null));
+  if (onLocalServer) saveToProject();
+}
+
+function stopForError(e) {
+  const msg = {
+    not_granted: 'Claude access was not allowed for this page, so the AI crew cannot run. Reload the page to be asked again.',
+    rate_limited: 'Claude says too many requests right now (or a usage limit was reached). Wait a bit, then start a new run.',
+    session_expired: 'Your claude.ai session expired. Sign in again, then start a new run.',
+  }[e?.code] || `Claude is not available here (${e?.code}).`;
+  logError(msg);
+  addRow({ kind: 'error', speaker: 'System', note: msg });
+  S.token++; S.running = false; setBusy(''); clearCutscenes(); stopVoices(); characters.forEach(hideBubble); updateButtons();
+}
+
+function waitForArrivals(token) {
+  const start = performance.now();
+  return new Promise(res => {
+    const check = () => {
+      const done = characters.every(c => !c.queue.length);
+      if (done || token !== S.token) return res();
+      if (performance.now() - start > 40000) {   // safety net: snap anyone still walking
+        characters.forEach(c => { if (c.queue.length) { c.pos.copy(c.queue[c.queue.length - 1]); c.queue = []; } });
+        return res();
+      }
+      setTimeout(check, 200);
+    };
+    check();
+  });
+}
+
+/* ---------------------------------------------------------------------
+   STEP 11 — The panels: crew cards, meters, decision log
+   --------------------------------------------------------------------- */
+let followIdx = null, followZoom = false;
+const memberEls = characters.map((c, idx) => {
+  const li = document.createElement('li');
+  const btn = document.createElement('button');
+  btn.className = 'member'; btn.type = 'button';
+  const dot = document.createElement('img'); dot.className = 'av'; dot.src = portraitUrl(c); dot.alt = ''; dot.style.borderColor = c.color;
+  const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = c.name;
+  const rl = document.createElement('span'); rl.className = 'rl'; rl.textContent = c.title;
+  const st = document.createElement('span'); st.className = 'st';
+  const chip = document.createElement('span'); chip.className = 'chip';
+  const head = document.createElement('span'); head.style.display = 'flex'; head.style.gap = '6px'; head.style.alignItems = 'baseline';
+  head.append(nm, rl);
+  btn.append(dot, head, chip, st);
+  btn.addEventListener('click', () => {
+    followIdx = followIdx === idx ? null : idx; followZoom = followIdx !== null;
+    memberEls.forEach((m, k) => m.btn.classList.toggle('following', k === followIdx));
+  });
+  li.append(btn); $('members').append(li);
+  return { btn, st, chip };
+});
+function renderMembers() {
+  characters.forEach((c, i) => {
+    const { st, chip } = memberEls[i];
+    chip.textContent = c.status;
+    chip.className = 'chip ' + c.status;
+    const where = c.queue.length ? `Heading to ${placeName(c.node)}` : `At ${placeName(c.node)}`;
+    st.textContent = `${where} · wants ${c.share}%` + (c.last?.escape_exit ? ` · exit: ${placeName(c.last.escape_exit)}` : '');
+  });
+}
+function renderMeters() {
+  $('mScene').textContent = `${Math.min(S.scene, MAX_SCENES)}/${MAX_SCENES}`;
+  $('mHeat').textContent = S.heat;
+  $('mHeatBar').style.width = `${S.heat}%`;
+  $('mLoot').textContent = money(S.loot);
+}
+function setTicker(sc, tx) { $('tScene').textContent = sc; $('tText').textContent = tx; }
+function setBusy(t) { $('tBusy').textContent = t; }
+function updateButtons() {
+  $('startBtn').disabled = S.running || !modeReady;
+  $('startBtn').textContent = S.running ? 'Running…' : sample ? 'Start a run' : 'Start a demo run (no AI)';
+  $('stopBtn').disabled = !S.running;
+  $('csvBtn').disabled = !S.rows.length;
+}
+
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function line(label, text, cls) {
+  const p = el('p', cls); const b = el('b', null, label); p.append(b, document.createTextNode(text)); return p;
+}
+function push(node) {
+  const nearBottom = entries.scrollHeight - entries.scrollTop - entries.clientHeight < 80;
+  entries.append(node);
+  if (nearBottom) entries.scrollTop = entries.scrollHeight;
+}
+function logScene() { push(el('div', 'scene-h', `Scene ${S.scene} · ${SCENE_ARC[S.scene - 1]}`)); }
+function logEvent(t) { const e = el('div', 'entry event'); e.append(el('p', null, t)); push(e); }
+function logNote(t) { const e = el('div', 'entry'); e.append(el('p', null, t)); push(e); }
+function logError(t) { const e = el('div', 'entry err'); e.append(el('p', null, t)); push(e); }
+function logCutscene(t) { const e = el('div', 'entry event'); e.append(line('Cutscene', t)); push(e); }
+function logDecision(c, from, d, roll, note) {
+  const e = el('div', 'entry'); e.style.borderLeft = `3px solid ${c.color}`;
+  const top = el('div', 'top');
+  const who = el('span', 'who', c.name); who.style.color = c.color;
+  top.append(who, el('span', 'meta', `${c.title} · ${placeName(from)} → ${placeName(d.move_to)} · d20 ${roll}`));
+  e.append(top);
+  e.append(line('Says', `"${d.say}"`));
+  if (d.action) e.append(line('Does', d.action));
+  if (d.reason) e.append(line('Why', d.reason));
+  e.append(line('Escape', `${d.escape_route || '—'}${d.escape_exit ? ` (exit: ${placeName(d.escape_exit)})` : ''}`));
+  e.append(line('Share', `${d.share_wanted}%`));
+  if (d.tip_police) e.append(line('Secret to SFPD', `${d.tip_police}${d.tip_location ? ` (points to ${placeName(d.tip_location)})` : ''}`, 'secret'));
+  if (note) e.append(line('Note', note));
+  push(e);
+}
+function logNarration(text, changes, dh, dl) {
+  const e = el('div', 'entry narr');
+  e.append(el('div', 'top')); e.firstChild.append(el('span', 'who', 'Narrator'), el('span', 'meta', `heat ${dh >= 0 ? '+' : ''}${dh} · loot +${money(dl)}`));
+  e.append(el('p', null, text));
+  for (const ch of changes) e.append(line('Status', ch));
+  push(e);
+}
+function logEnding(title, epilogue, moneyLine) {
+  const e = el('div', 'entry end');
+  e.append(el('h2', null, `The end: ${title}`));
+  if (epilogue) e.append(el('p', null, epilogue));
+  if (moneyLine) e.append(line('Money', moneyLine));
+  e.append(line('Final', characters.map(c => `${c.name} ${c.status}`).join(' · ')));
+  push(e);
+}
+
+/* ---------------------------------------------------------------------
+   STEP 12 — CSV export (opens in Excel or Google Sheets)
+   --------------------------------------------------------------------- */
+const CSV_COLS = ['run_id', 'scene', 'step', 'time', 'kind', 'speaker', 'role', 'location_before', 'move_to', 'escape_exit', 'escape_route',
+                  'share_wanted', 'said', 'action', 'reason', 'secret_tip_to_police', 'dice', 'status_after', 'heat', 'loot', 'roadblocks', 'note'];
+function addRow(r) {
+  S.rows.push({ run_id: S.runId, scene: S.scene, step: ++S.step, time: new Date().toISOString(), kind: r.kind, speaker: r.speaker, role: r.role,
+    location_before: r.location_before, move_to: r.move_to, escape_exit: r.escape_exit, escape_route: r.escape_route, share_wanted: r.share_wanted,
+    said: r.said, action: r.action, reason: r.reason, secret_tip_to_police: r.secret_tip, dice: r.dice, status_after: r.status_after,
+    heat: S.heat, loot: S.loot, roadblocks: r.roadblocks ?? [...S.roadblocks].join(' '), note: r.note });
+  updateButtons();
+}
+function csvCell(v) {
+  let s = v == null ? '' : String(v);
+  if (/^[=+\-@]/.test(s)) s = "'" + s;            // stop spreadsheets from treating text as a formula
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+const buildCsv = () => '﻿' + [CSV_COLS.join(','), ...S.rows.map(r => CSV_COLS.map(k => csvCell(r[k])).join(','))].join('\r\n');
+const csvName = () => `transamerica-job-${S.runId || 'log'}.csv`;
+const onLocalServer = !inClaude && ['localhost', '127.0.0.1'].includes(location.hostname);
+// On this computer (node scripts/serve.mjs) a finished run is saved straight into data/demo-runs/
+async function saveToProject() {
+  try {
+    const r = await fetch('api/save-run', { method: 'POST', headers: { 'x-filename': csvName(), 'Content-Type': 'text/csv' }, body: buildCsv() });
+    if (r.ok) { logNote(`Log saved to the project folder: data/demo-runs/${csvName()}`); return true; }
+  } catch { /* not running behind scripts/serve.mjs */ }
+  return false;
+}
+async function saveCsv() {
+  const csv = buildCsv();
+  const filename = csvName();
+  if (onLocalServer && await saveToProject()) return;
+  if (downloads) {
+    try { await downloads.save({ filename, data: csv }); }
+    catch (e) { if (e?.code !== 'declined') logError(`Could not save the file (${e?.code}).`); }
+    return;
+  }
+  if (inClaude) { logError('Saving files is not available in this view.'); return; }
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a'); a.href = url; a.download = filename; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/* ---------------------------------------------------------------------
+   Wire up the buttons, find out whether Claude is available, start the loop
+   --------------------------------------------------------------------- */
+let modeReady = false;
+$('startBtn').addEventListener('click', startRun);
+$('stopBtn').addEventListener('click', stopRun);
+$('csvBtn').addEventListener('click', saveCsv);
+$('cutFig').addEventListener('click', nextCutscene);
+$('loadTrustBtn').addEventListener('click', () => $('trustFile').click());
+$('trustFile').addEventListener('change', e => { const f = e.target.files?.[0]; if (f) loadTrustFile(f); e.target.value = ''; });
+loadMemory();
+$('voiceChk').addEventListener('change', e => {
+  voicesOn = e.target.checked;
+  if (!voicesOn) stopVoices();
+  voiceNote('');
+});
+// Load the images in the background so cutscenes appear instantly
+const CUT_FILES = ['heist', 'betrayal_tip', 'betrayal_exposed',
+  ...CREW.flatMap(c => ['arrest_' + c.id, ...EXITS.map(x => `escape_${c.id}_${x}`)])];
+setTimeout(() => CUT_FILES.forEach(f => { const i = new Image(); i.src = `img/cutscenes/${f}.jpg`; }), 1500);
+$('speed').addEventListener('input', e => { speed = parseFloat(e.target.value); $('speedVal').textContent = `${speed}×`; });
+routesChk.addEventListener('change', () => characters.forEach(c => { if (c.routeLine) c.routeLine.visible = routesChk.checked; }));
+$('resetBtn').addEventListener('click', () => {
+  followIdx = null; memberEls.forEach(m => m.btn.classList.remove('following'));
+  camera.position.copy(HOME_POS); controls.target.copy(HOME_TARGET);
+});
+renderMembers(); renderMeters();
+
+(async () => {
+  if (inClaude) {
+    [sample, downloads, tts] = await Promise.all(['sample', 'downloads', 'tts'].map(n => window.claude.use(n).catch(() => null)));
+  }
+  if (tts) {
+    voiceNote('Voices: Claude voices (Ruby rounded, Sky airy, Sunny glassy, Mint buttery).');
+    tts.onState(({ state, reason }) => { if (state === 'idle' && reason) handleVoiceError({ code: reason === 'viewer_stopped' ? 'stopped' : reason, reason }); });
+  } else if (!inClaude && 'speechSynthesis' in window) {
+    voiceNote('Voices: your browser\'s built-in voices.');
+  } else {
+    voicesOn = false; $('voiceChk').checked = false; $('voiceChk').disabled = true;
+    voiceNote('Voices are not available in this view. In the Claude app, open the page in your web browser (Chrome or Edge) to hear them.');
+  }
+  const mode = $('mode');
+  mode.replaceChildren();
+  if (sample) mode.append('Mode: ', el('b', null, 'AI crew'), ' · runs on your Claude account, about 50 Claude calls per run.');
+  else mode.append('Mode: ', el('b', null, 'demo (no AI)'), inClaude ? ' · Claude is not available in this view.' : ' · open this page on claude.ai to turn the AI crew on.');
+  modeReady = true; updateButtons();
+})();
+
+const clock = new THREE.Clock();
+let sirenT = 0;
+function tick() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t = clock.elapsedTime; clockT = t;
+  animateWater(t);
+  for (const c of clouds) { c.position.x += dt * 1.5; if (c.position.x > 150) c.position.x = -130; }
+  for (const b of BOBBING_BOATS) b.obj.position.y = 0.3 + Math.sin(t * 2 + b.phase) * 0.08;
+  sirenT += dt;
+  const flip = Math.floor(sirenT * 4) % 2 === 0;
+  for (const g of policeCars.values()) { g.userData.red.material = flip ? SIREN_RED : SIREN_OFF; g.userData.blue.material = flip ? SIREN_OFF : SIREN_BLUE; }
+  let anyMoving = false;
+  for (const c of characters) {
+    const wasMoving = c.queue.length > 0;
+    updateCharacter(c, dt * speed, t);
+    if (wasMoving) anyMoving = true;
+    if (c.bubbleUntil && t > c.bubbleUntil) hideBubble(c);
+  }
+  if (anyMoving) renderMembers();
+  if (followIdx !== null) {
+    const target = characters[followIdx].fig.root.position, before = controls.target.clone();
+    controls.target.lerp(target, 0.08);
+    camera.position.add(controls.target.clone().sub(before));
+    if (followZoom) {
+      const offset = camera.position.clone().sub(controls.target), dist = offset.length();
+      if (Math.abs(dist - 40) < 1) followZoom = false;
+      else camera.position.copy(controls.target).add(offset.setLength(dist + (40 - dist) * 0.06));
+    }
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+tick();
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight); labelRenderer.setSize(innerWidth, innerHeight);
+});
+</script>

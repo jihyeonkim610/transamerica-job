@@ -1,0 +1,5 @@
+# Turns saved decision logs (data/runs/*.csv) into a trust table, then writes trust.json for the page.
+# Run from the project folder:  bruin run pipelines/trust
+name: trust
+default_connections:
+  duckdb: "heist-duckdb"
