@@ -39,6 +39,12 @@ try {
   Write-Host ""
   Write-Host "Trust table (row = who trusts, column = whom):"
   & $bruin query --connection heist-duckdb --query "SELECT * FROM (PIVOT mart.trust ON trustee USING first(trust_score) GROUP BY truster) ORDER BY truster"
+  Write-Host ""
+  Write-Host "Escape exits learned from past runs:"
+  & $bruin query --connection heist-duckdb --query "SELECT place_name, visits, escapes, arrests, escape_rate FROM mart.place_stats WHERE is_exit ORDER BY escape_rate DESC NULLS LAST"
+  Write-Host ""
+  Write-Host "Where police set up roadblocks:"
+  & $bruin query --connection heist-duckdb --query "SELECT place_name, scenes_with_police, share_of_scenes FROM mart.police_hotspots"
 } finally {
   Pop-Location
 }

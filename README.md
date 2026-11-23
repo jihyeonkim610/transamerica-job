@@ -22,7 +22,7 @@
 - **말풍선과 목소리:** 캐릭터마다 다른 목소리로 대사를 읽어요
 - **컷신:** 체포, 탈출, 배신, 은행 털기 순간에 그림이 떠요 (Runware로 미리 생성)
 - **결정 기록:** 누가 무엇을 왜 결정했는지 기록하고 CSV로 저장해요
-- **신뢰 기억:** Bruin 파이프라인이 지난 판 기록을 DuckDB에 모아 신뢰 테이블을 만들고, 캐릭터들은 그걸 기억으로 받아요
+- **신뢰 기억과 학습:** Bruin 파이프라인이 지난 판 기록을 DuckDB에 모아 신뢰 테이블과 탈출로 성공률을 만들고, 캐릭터들은 그걸 기억으로 받아서 결정을 바꿔요
 
 ## 어떻게 동작하나요
 
@@ -90,6 +90,46 @@ node scripts/generate-images.mjs --only=arrest_sky   # 한 장만 다시
 node scripts/generate-images.mjs --redo              # 전부 다시 (비용 발생)
 ```
 
+## Bruin 파이프라인: 캐릭터의 기억과 학습
+
+`pipelines/trust`는 판 기록을 캐릭터들이 다음 판에 쓸 **기억과 지식**으로 바꿔요. 10개 자산(asset)을 Bruin이 의존 순서대로 실행하고, 데이터는 DuckDB에 쌓여요.
+
+```mermaid
+flowchart LR
+  csv[("data/runs/*.csv<br/>판 기록")] --> raw["raw.decision_log"]
+  seed[("places.csv")] --> places["reference.places<br/>seed"]
+  raw --> status["staging.crew_status"]
+  raw --> events["staging.betrayal_events"]
+  status --> events
+  events --> trust["mart.trust<br/>신뢰 테이블"]
+  status --> history["mart.agent_history"]
+  raw --> summary["mart.run_summary"]
+  status --> placestats["mart.place_stats<br/>탈출로 성공률"]
+  places --> placestats
+  places --> hotspots["mart.police_hotspots<br/>검문소 빈도"]
+  raw --> hotspots
+  trust --> export["export.trust_json"]
+  history --> export
+  summary --> export
+  placestats --> export
+  hotspots --> export
+  export --> page(["다음 판 AI 캐릭터의 기억"])
+```
+
+| 결과 | 캐릭터가 받는 기억 |
+|---|---|
+| `mart.trust` | 모두: "Mint에 대한 신뢰 22/100 (경찰 정보원으로 들통남 1번)" |
+| `mart.agent_history` | 각자: 자기 전적. Mint만: 지금까지 경찰에 몰래 보낸 문자 수 |
+| `mart.place_stats` | 운전수 Sky: 탈출로별 성공률과 체포율 → **데이터를 보고 경로를 바꿔요** |
+| `mart.police_hotspots` | 운전수 Sky: 경찰 검문소가 자주 생기는 곳 |
+| `mart.run_summary` | 모두: 최근 판들이 어떻게 끝났는지 |
+
+**품질 검사 24개**가 실행 때마다 데이터를 확인해요. 예를 들면:
+- 상태 값이 정해진 5가지 중 하나인지 (`accepted_values`)
+- 신뢰 점수와 비율이 범위 안인지 (`min`, `max`)
+- 장소와 쌍이 중복되지 않는지 (`unique`, 커스텀 검사)
+- 누구도 자기 자신을 평가하지 않는지 (커스텀 검사)
+
 ## 신뢰 점수 규칙
 
 모든 쌍(A가 B를 얼마나 믿는지)은 **70점에서 시작**해서, A가 **알 수 있었던** 사건에 따라 0~100점 사이로 움직여요.
@@ -113,9 +153,10 @@ img/cutscenes/              컷신 19장
 scripts/serve.mjs           내 컴퓨터용 미리보기 서버
 scripts/generate-images.mjs Runware 그림 생성
 pipelines/trust/            Bruin 파이프라인
+  assets/reference/         장소 목록 (seed)
   assets/raw/               CSV를 DuckDB로 불러오기
   assets/staging/           상태 변화와 배신 사건 뽑기
-  assets/mart/              신뢰 테이블, 개인 기록, 판 요약
+  assets/mart/              신뢰 테이블, 개인 기록, 판 요약, 탈출로 통계, 검문소 빈도
   assets/export/            trust.json 만들기
 update-trust.ps1            기록 옮기기 + 파이프라인 실행을 한 번에
 trust.json                  페이지가 읽는 기억 파일

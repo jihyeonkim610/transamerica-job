@@ -1110,6 +1110,33 @@ function memoryFor(c) {
 ${lines.map(l => '- ' + l).join('\n')}
 Let these memories shape whom you trust, what you share, whom you cover for and which escape route you pick. Below 40 you are openly wary of that person; above 80 you rely on them.`;
 }
+// What past runs taught about the city (mart.place_stats + mart.police_hotspots in the Bruin pipeline).
+// The Driver studies all of it; everyone else just knows the headline.
+const pct = x => `${Math.round(Number(x) * 100)}%`;
+function streetKnowledge(c) {
+  if (!memory || !Number(memory.runs)) return '';
+  const exits = (memory.places || []).filter(p => p.is_exit && p.visits > 0)
+    .sort((a, b) => (b.escape_rate ?? 0) - (a.escape_rate ?? 0));
+  const hot = (memory.hotspots || []).slice(0, 4);
+  if (!exits.length && !hot.length) return '';
+  const lines = [];
+  if (c.role === 'driver') {
+    for (const p of exits) lines.push(`${p.place_name}: ${p.escapes} escapes and ${p.arrests} arrests in ${p.visits} tries (${pct(p.escape_rate)} got away).`);
+    for (const h of hot) lines.push(`Police roadblock at ${h.place_name} in ${pct(h.share_of_scenes)} of past scenes.`);
+    const risky = (memory.places || []).filter(p => !p.is_exit && p.arrests > 0);
+    for (const p of risky) lines.push(`${p.place_name}: ${p.arrests} arrests out of ${p.visits} visits.`);
+    return `STREET KNOWLEDGE YOU HAVE STUDIED FROM PAST JOBS (you are the expert on routes; use it and tell the crew):\n${lines.map(l => '- ' + l).join('\n')}`;
+  }
+  if (exits[0]) lines.push(`The way out that has worked best: ${exits[0].place_name} (${pct(exits[0].escape_rate)} got away); worst: ${exits[exits.length - 1].place_name}.`);
+  if (hot[0]) lines.push(`Police most often block ${hot[0].place_name}.`);
+  return `WHAT THE CREW REMEMBERS ABOUT THE CITY:\n${lines.map(l => '- ' + l).join('\n')}`;
+}
+function streetHeadline() {
+  const exits = (memory?.places || []).filter(p => p.is_exit && p.visits > 0).sort((a, b) => (b.escape_rate ?? 0) - (a.escape_rate ?? 0));
+  const hot = (memory?.hotspots || [])[0];
+  return [exits[0] && `best exit so far ${exits[0].place_name} (${pct(exits[0].escape_rate)})`,
+          hot && `police most often at ${hot.place_name} (${pct(hot.share_of_scenes)} of scenes)`].filter(Boolean).join('; ');
+}
 function trustHeadline() {   // short summary for the narrator and the log
   if (!memory || !Number(memory.runs)) return '';
   const rows = (memory.trust || []).filter(t => t.trust_score <= 45 || t.trust_score >= 85)
@@ -1196,7 +1223,7 @@ ${now}
 
 YOUR PRIVATE NOTES FROM EARLIER SCENES (only you remember these):
 ${mem}
-${memoryFor(c) ? '\n' + memoryFor(c) + '\n' : ''}
+${memoryFor(c) ? '\n' + memoryFor(c) + '\n' : ''}${streetKnowledge(c) ? '\n' + streetKnowledge(c) + '\n' : ''}
 PLACES YOU CAN GO (use the key in "move_to"). Exits are the only ways to actually escape:
 ${placesList()}
 You are now at: ${c.node}. To stay put, use "${c.node}".
@@ -1294,6 +1321,17 @@ function demoDecision(c) {
     d.say = `I haven't forgotten last time, ${wary.o.name}. I'm watching you.`;
     d.reason = `(demo mode) trust in ${wary.o.name} is only ${wary.t}/100 after past runs`;
   }
+  // The Driver picks the exit that has worked best in past runs
+  if (c.role === 'driver') {
+    const best = (memory?.places || []).filter(p => p.is_exit && p.visits > 0).sort((a, b) => (b.escape_rate ?? 0) - (a.escape_rate ?? 0))[0];
+    const key = best && EXITS.find(k => NODES[k].name === best.place_name);
+    if (key) {
+      d.escape_exit = key;
+      d.escape_route = shortestPath(d.move_to, key).filter(k => NODES[k].pick).map(placeName).join(' -> ');
+      d.say = `Past jobs say ${best.place_name} works: ${pct(best.escape_rate)} got out that way. We go there.`;
+      d.reason = `(demo mode) best escape rate in past runs: ${best.place_name}`;
+    }
+  }
   if (c.role === 'infiltrator') {
     const tip = Math.random() < 0.5;
     d.tip_police = tip ? `Crew heading toward ${placeName(exit)}.` : '';
@@ -1361,6 +1399,7 @@ async function startRun() {
   logNote(`New run ${S.runId} · ${sample ? 'AI crew' : 'demo mode, no AI'}`, '');
   if (memory && Number(memory.runs)) {
     logNote(`Memory from ${memory.runs} past runs: ${trustHeadline()}.`);
+    if (streetHeadline()) logNote(`Street knowledge (Sky studies the routes): ${streetHeadline()}.`);
     addRow({ kind: 'memory', speaker: 'System', note: `${memory.runs} past runs; ${trustHeadline()}`,
              reason: characters.map(c => `${c.name}: ${characters.filter(o => o !== c).map(o => `${o.name} ${trustRow(c.name, o.name)?.trust_score ?? '?'}`).join(', ')}`).join(' | ') });
   } else {

@@ -15,6 +15,25 @@ columns:
     type: integer
     checks:
       - name: not_null
+      - name: min
+        value: 0
+      - name: max
+        value: 100
+  - name: secret_tips
+    type: integer
+    checks:
+      - name: non_negative
+custom_checks:
+  - name: one row per pair
+    description: Every truster -> trustee pair appears exactly once.
+    query: |
+      SELECT count(*) FROM (
+        SELECT truster, trustee FROM mart.trust GROUP BY 1, 2 HAVING count(*) > 1
+      )
+    value: 0
+  - name: nobody rates themselves
+    query: SELECT count(*) FROM mart.trust WHERE truster = trustee
+    value: 0
 @bruin */
 
 WITH crew_runs AS (

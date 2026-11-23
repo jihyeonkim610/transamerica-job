@@ -1,0 +1,15 @@
+place_key,place_name,area,is_exit
+mission,Mission District hideout,south,false
+soma,SoMa warehouses,south,false
+bank,Bank of the Bay,downtown,false
+transamerica,Transamerica Pyramid,downtown,false
+chinatown,Chinatown,downtown,false
+lombard,Lombard Street,north,false
+wharf,Fisherman's Wharf,north,false
+northShore,Marina waterfront,north,false
+alcatraz,Alcatraz,bay,false
+goldenGate,Golden Gate Bridge,north,false
+bayBridge,Bay Bridge,east,false
+marin,Marin Headlands,exit,true
+oakland,Oakland,exit,true
+openBay,Open Bay (by boat),exit,true

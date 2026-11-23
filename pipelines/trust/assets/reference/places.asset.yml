@@ -1,0 +1,20 @@
+name: reference.places
+type: duckdb.seed
+description: |
+  The places on the map the crew can choose, with the key the game uses for police roadblocks
+  and the name it writes in the decision log. The three exits are the only ways out of the city.
+parameters:
+  path: places.csv
+columns:
+  - name: place_key
+    type: varchar
+    checks:
+      - name: not_null
+      - name: unique
+  - name: place_name
+    type: varchar
+    checks:
+      - name: not_null
+      - name: unique
+  - name: is_exit
+    type: boolean

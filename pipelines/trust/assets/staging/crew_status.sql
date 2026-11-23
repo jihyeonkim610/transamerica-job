@@ -8,6 +8,17 @@ materialization:
   type: table
 depends:
   - raw.decision_log
+columns:
+  - name: name
+    type: varchar
+    checks:
+      - name: accepted_values
+        value: ["Ruby", "Sky", "Sunny", "Mint"]
+  - name: status
+    type: varchar
+    checks:
+      - name: accepted_values
+        value: ["active", "hiding", "escaped", "captured", "exposed"]
 @bruin */
 
 WITH pairs AS (

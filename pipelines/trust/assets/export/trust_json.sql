@@ -8,6 +8,8 @@ depends:
   - mart.trust
   - mart.agent_history
   - mart.run_summary
+  - mart.place_stats
+  - mart.police_hotspots
 @bruin */
 
 COPY (
@@ -18,5 +20,9 @@ COPY (
     (SELECT list(h ORDER BY h.name) FROM mart.agent_history h)               AS history,
     (SELECT list(r ORDER BY r.started_at DESC)
        FROM (SELECT run_id, CAST(started_at AS VARCHAR) AS started_at, scenes, ending_title, final_statuses, loot, finished
-             FROM mart.run_summary ORDER BY started_at DESC LIMIT 5) r)      AS recent_runs
+             FROM mart.run_summary ORDER BY started_at DESC LIMIT 5) r)      AS recent_runs,
+    (SELECT list(p ORDER BY p.is_exit DESC, p.place_name)
+       FROM mart.place_stats p WHERE p.visits > 0)                           AS places,
+    (SELECT list(h ORDER BY h.scenes_with_police DESC)
+       FROM mart.police_hotspots h)                                          AS hotspots
 ) TO 'trust.json' (FORMAT json);
