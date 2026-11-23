@@ -5,6 +5,13 @@ After each run, a Bruin pipeline works out who betrayed whom and which escape ro
 
 ![The crew rushing out of Bank of the Bay next to the Transamerica Pyramid](img/cutscenes/heist.jpg)
 
+## ▶ Play
+
+| | Link | What you get |
+|---|---|---|
+| **With the AI crew** | [claude.ai/artifact/31isQgQnJaU9nVwsZ6LteU](https://claude.ai/artifact/31isQgQnJaU9nVwsZ6LteU) | The full game. Open it in Chrome or Edge while signed in to Claude; the agents run on your own Claude account. Pick a character under **Play as** to join the crew yourself. |
+| **Demo mode, no sign-in** | [jihyeonkim610.github.io/transamerica-job](https://jihyeonkim610.github.io/transamerica-job/) | The 3D city, characters, cutscenes and decision log, with random decisions instead of AI. |
+
 ## The crew
 
 | | Name | Role | Personality |
@@ -18,6 +25,7 @@ After each run, a Bruin pipeline works out who betrayed whom and which escape ro
 
 - **3D city:** Golden Gate Bridge, Bay Bridge, Transamerica Pyramid, Lombard Street, Fisherman's Wharf, Alcatraz and the Mission District, built from simple shapes in Three.js
 - **Agents that decide:** for up to 10 scenes, each agent chooses what to say, what to do, where to go, its escape route and the share of the loot it wants. A narrator agent rolls dice and decides what actually happens
+- **Join the crew:** pick a character under **Play as** and decide for them on their turn; the AI crew hears you as that character and reacts
 - **A different ending every run:** a hidden twist per run, random world events (fog, traffic, a police helicopter), dice rolls, and the memory of earlier endings
 - **Speech bubbles and voices:** every character speaks its lines in its own voice
 - **Cutscenes:** arrests, escapes, the betrayal and the heist each pop up as an image (pre-generated with Runware)
