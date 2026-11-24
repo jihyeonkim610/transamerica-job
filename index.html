@@ -1186,6 +1186,12 @@ async function speakLine(c, text) {
   finally { skipBtn.hidden = true; skipLineNow = null; }
 }
 let skipLineNow = null;
+// Lines wait in a queue and are spoken one after another in the background, so nobody stops walking to talk
+let voiceChain = Promise.resolve();
+function queueLine(c, text, token) {
+  voiceChain = voiceChain.then(() => (token === S.token ? speakLine(c, text) : null)).catch(() => {});
+  return voiceChain;
+}
 function handleVoiceError(e) {
   if (e?.code === 'not_granted' || e?.code === 'unavailable') {
     voicesOn = false; $('voiceChk').checked = false; $('voiceChk').disabled = true;
@@ -1708,35 +1714,38 @@ async function playScene(token) {
   renderMeters();
   if (!await sleep(900, token)) return true;
 
-  // 2. Each crew member still in play decides, one after another (the Leader goes first)
+  // 2. Everyone still in play decides AT THE SAME TIME. Each one starts walking and talking the moment
+  //    they've decided, so the crew talks while moving. Lines are spoken one after another (one voice at a
+  //    time), and the Leader starts a moment earlier so later speakers can react to what's been said.
   const inPlay = characters.filter(c => !OUT.has(c.status));
   const order = [inPlay.find(c => c.role === 'leader'), ...inPlay.filter(c => c.role !== 'leader').sort(() => Math.random() - 0.5)].filter(Boolean);
   const thisScene = [], decisions = [];
-  for (const c of order) {
-    c.statusBefore = c.status;
-    setBusy(c.id === S.playerId ? `Your turn as ${c.name}. Decide in the panel.` : `${c.name} (${c.title}) is deciding…`);
-    showThinking(c);
+  let aborted = false;
+  S.ctl = new AbortController();
+  setBusy(S.playerId && order.some(c => c.id === S.playerId) ? 'The crew is talking it over. Your turn is in the panel.' : 'The crew is talking it over…');
+  order.forEach(c => { c.statusBefore = c.status; showThinking(c); });
+  await Promise.all(order.map((c, i) => (async () => {
+    if (i && !await sleep(i * 700, token)) { aborted = true; return; }   // small head start for each earlier speaker
     let d, note = '', aiDecides = true;
     if (c.id === S.playerId) {               // the human player's turn
       const p = await playerDecision(c, thisScene);
-      if (token !== S.token || p === null) return true;
+      if (token !== S.token || p === null) { aborted = true; return; }
       if (p !== 'AUTO') { d = cleanDecision(c, p); note = 'Decided by you (the player)'; aiDecides = false; }
     }
     if (!aiDecides) { /* the player already decided */ }
     else if (sample) {
-      S.ctl = new AbortController();
       try { d = cleanDecision(c, await askClaude(agentPrompt(c, thisScene), 'quick', S.ctl.signal)); }
       catch (e) {
-        if (token !== S.token) return true;
-        if (FATAL.has(e?.code)) { stopForError(e); return true; }
+        if (token !== S.token) { aborted = true; return; }
+        if (FATAL.has(e?.code)) { aborted = true; stopForError(e); return; }
         d = cleanDecision(c, { say: '…', action: 'hesitates', move_to: c.node, reason: '' });
         note = `AI call failed (${e?.code || 'error'}); ${c.name} stays put this scene.`;
       }
     } else {
-      await sleep(500, token);
+      await sleep(500 + Math.random() * 900, token);
       d = cleanDecision(c, demoDecision(c));
     }
-    if (token !== S.token) return true;
+    if (token !== S.token) { aborted = true; return; }
 
     const from = c.node;
     const path = walkTo(c, d.move_to);
@@ -1745,7 +1754,7 @@ async function playScene(token) {
     c.last = d;
     c.memory.push(`Scene ${S.scene}: I went to ${placeName(d.move_to)} because ${d.reason}${d.tip_police ? ` I secretly told police: "${d.tip_police}".` : ''}`);
     if (d.tip_police) S.pendingTips.push(d.tip_location || d.escape_exit || d.move_to);
-    showBubble(c, d.say, d.tip_police, 10);
+    showBubble(c, d.say, d.tip_police, 14);
     drawRoute(c, d.escape_exit);
     thisScene.push(`- ${c.name} (${c.title}) said: "${d.say}" and ${d.action || 'acted'}; heading to ${placeName(d.move_to)}.`);
     const roll = d20();
@@ -1759,13 +1768,13 @@ async function playScene(token) {
              escape_exit: d.escape_exit ? placeName(d.escape_exit) : '', escape_route: d.escape_route, share_wanted: d.share_wanted,
              said: d.say, action: d.action, reason: d.reason, secret_tip: d.tip_police || '', dice: roll, note: [note, hit ? `route passes police at ${placeName(hit)}` : ''].filter(Boolean).join('; ') });
     renderMembers();
-    await speakLine(c, d.say);        // the character says the line out loud; the next one waits their turn
-    if (!await sleep(voicesOn ? 250 : 600, token)) return true;
-  }
+    queueLine(c, d.say, token);       // spoken in turn in the background while everyone keeps walking
+  })()));
+  if (aborted || token !== S.token) return true;
 
-  // 3. Wait for everyone to arrive on the map
+  // 3. Let everyone arrive on the map and finish what they're saying
   setBusy('The crew is on the move…');
-  await waitForArrivals(token);
+  await Promise.all([waitForArrivals(token), voiceChain]);
   if (token !== S.token) return true;
 
   // 4. The narrator decides what happened
