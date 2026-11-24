@@ -35,6 +35,7 @@ function motionFor(name) {
   if (name.startsWith('escape_') && name.endsWith('_oakland')) return 'driving fast across the Bay Bridge, lights streaking past, escape';
   if (name.startsWith('escape_') && name.endsWith('_openBay')) return 'speedboat bouncing over the waves, sea spray, the Alcatraz lighthouse beam sweeping, escape';
   if (name.startsWith('arrest_')) return 'police officers step closer, red and blue lights pulse, the character slowly raises both hands';
+  if (name.startsWith('place_')) return 'establishing shot with a slow camera pan, fog drifting, lights flickering, water and traffic moving gently, no people appear';
   return {
     heist: 'the crew runs out of the bank carrying duffel bags, alarm light flashing red',
     betrayal_tip: 'nervous thumbs typing a message on the glowing phone, glancing over the shoulder, lanterns swaying',
@@ -75,8 +76,13 @@ async function makeVideo(name) {
     if (r?.status === 'success' && r.videoURL) {
       const v = await fetch(r.videoURL);
       if (!v.ok) throw new Error(`download failed (HTTP ${v.status})`);
-      fs.mkdirSync(OUT, { recursive: true });
-      fs.writeFileSync(path.join(OUT, `${name}.mp4`), Buffer.from(await v.arrayBuffer()));
+      // keep the full-size original in video/raw, and put a web-friendly copy in video/ (needs ffmpeg)
+      const raw = path.join(OUT, 'raw', `${name}.mp4`);
+      fs.mkdirSync(path.dirname(raw), { recursive: true });
+      fs.writeFileSync(raw, Buffer.from(await v.arrayBuffer()));
+      const { execFileSync } = await import('node:child_process');
+      execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', raw, '-c:v', 'libx264', '-crf', '20', '-preset', 'slow', '-tune', 'animation',
+                              '-pix_fmt', 'yuv420p', '-an', '-movflags', '+faststart', path.join(OUT, `${name}.mp4`)]);
       return r.cost ?? 0;
     }
     if (r?.status === 'error') throw new Error('Runware reported an error for this video');

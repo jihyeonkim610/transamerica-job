@@ -37,7 +37,7 @@ Front, side and back views of each character, generated together in one image so
 - **Join the crew:** pick a character under **Play as** and decide for them on their turn; the AI crew hears you as that character and reacts
 - **A different ending every run:** a hidden twist per run, random world events (fog, traffic, a police helicopter), dice rolls, and the memory of earlier endings
 - **Speech bubbles and voices:** every character speaks its lines in its own voice
-- **10-second story videos:** after every scene a short video plays with the narrator's account as subtitles; arrests, escapes, the betrayal and the heist each get their own video, other scenes get the video for that part of the plot (25 videos made with Runware image-to-video, using each still as both the first and last frame so the characters stay consistent)
+- **10-second story videos:** after every scene a short video plays with the narrator's account as subtitles. Arrests, escapes, the betrayal and the heist each get their own video; other scenes show the place the crew went to or the stage of the plot, and no video repeats within a run (36 videos made with Runware image-to-video, using each still as both the first and last frame so the characters stay consistent)
 - **Decision log:** who decided what and why, saved as CSV
 - **Memory and learning:** a Bruin pipeline loads past logs into DuckDB, builds a trust table and escape-route statistics, and hands them to the agents as memory
 
@@ -163,7 +163,7 @@ node scripts/generate-images.mjs --only=arrest_sky   # redo one image
 node scripts/generate-videos.mjs                     # 10-second videos for stills that don't have one yet
 node scripts/generate-videos.mjs --test              # one video (the heist), about $0.30
 ```
-Videos are made at 1024×576 and then shrunk with ffmpeg to the small copies in `video/` (about 300 KB each).
+Videos are made at 1024×576 and re-encoded with ffmpeg (H.264, CRF 20, no audio) into `video/`, about 1.6 MB each; the full-size originals stay in `video/raw/`, which is not committed.
 
 ## Project layout
 
@@ -171,8 +171,8 @@ Videos are made at 1024×576 and then shrunk with ffmpeg to the small copies in 
 index.html                  The whole game page (map, agents, log, voices, cutscenes)
 img/portraits/              4 character portraits
 img/sheets/                 4 character sheets (front, side, back)
-img/cutscenes/              25 stills, the first frame of each story video
-video/                      25 ten-second story videos
+img/cutscenes/              36 stills, the first frame of each story video
+video/                      36 ten-second story videos (events, plot stages, places)
 scripts/generate-videos.mjs Runware image-to-video
 scripts/serve.mjs           Local preview server
 scripts/generate-images.mjs Runware image generation

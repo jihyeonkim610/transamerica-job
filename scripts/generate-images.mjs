@@ -90,6 +90,26 @@ for (const [id, scene] of Object.entries(ARC)) {
   JOBS.push({ id, dir: 'cutscenes', file: `${id}.jpg`, w: 1024, h: 576, seed: 6000 + Object.keys(ARC).indexOf(id), prompt: `${STYLE}. Cinematic wide shot: ${scene}` });
 }
 
+// Place shots: one establishing shot per place on the map, with no characters in it (so nothing can drift).
+// The page plays the video of the place the crew went to in that scene.
+const PLACES = {
+  place_mission: 'a cozy Mission District street at night, colorful Victorian houses, a lit upstairs window of a hideout, palm trees, murals',
+  place_soma: 'quiet SoMa warehouse side streets at night, brick warehouses, loading docks, a parked van, steam from a manhole',
+  place_bank: 'a classical stone bank with tall columns at night, brass doors, the white Transamerica Pyramid right beside it, security lights',
+  place_transamerica: 'the plaza at the foot of the white Transamerica Pyramid at night, looking up the tall pointed tower, office lights',
+  place_chinatown: 'a narrow Chinatown alley in San Francisco at night, rows of red paper lanterns, shop signs, wet pavement',
+  place_lombard: 'the crooked Lombard Street at night, zigzag road with flower beds, houses on the steep hill, car headlights winding down',
+  place_wharf: "Fisherman's Wharf at night, wooden piers, the round crab sign, fishing boats bobbing, sea lions on floating docks",
+  place_northShore: 'the Marina waterfront at night, a quiet promenade by the water, the Golden Gate Bridge glowing in the distance through fog',
+  place_alcatraz: 'Alcatraz island at night seen from the water, the old prison on the rock, the lighthouse beam sweeping through fog',
+  place_goldenGate: 'the Golden Gate Bridge at night in drifting fog, huge international-orange towers, road lights, view along the deck',
+  place_bayBridge: 'the Bay Bridge at night, silver suspension cables lit up, traffic lights streaking, San Francisco skyline behind',
+};
+for (const [id, scene] of Object.entries(PLACES)) {
+  JOBS.push({ id, dir: 'cutscenes', file: `${id}.jpg`, w: 1024, h: 576, seed: 7000 + Object.keys(PLACES).indexOf(id),
+    prompt: `${STYLE}. Cinematic establishing shot, no people: ${scene}` });
+}
+
 // ---------- 4. Ask Runware for one image and save it ----------
 async function generate(job) {
   const body = [{

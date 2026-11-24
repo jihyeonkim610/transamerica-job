@@ -1083,12 +1083,30 @@ const pick = arr => arr[Math.floor(Math.random() * arr.length)];
    scripts/generate-videos.mjs). Big moments get their own video; every other scene gets the video
    for that part of the plot. If a video can't play, its still is shown for 5 seconds instead. --- */
 const CUT_SECONDS = 5, VIDEO_SECONDS = 10;
-const SCENE_VIDEO = ['arc_planning', 'arc_scouting', 'arc_prep', 'heist', 'arc_chase',
-                     'arc_split', 'arc_chase', 'arc_distrust', 'arc_split', 'arc_chase'];
+// Scenes without a big moment show where the crew went (a place video) or the stage of the plot,
+// and no video plays twice in the same run.
+const ARC_VIDEO = ['arc_planning', 'arc_scouting', 'arc_prep', 'arc_chase', 'arc_split', 'arc_distrust'];
+const ARC_HINT = { 1: 'arc_planning', 2: 'arc_scouting', 3: 'arc_prep', 5: 'arc_chase', 6: 'arc_split', 7: 'arc_chase', 8: 'arc_distrust', 9: 'arc_split', 10: 'arc_chase' };
+const PLACE_VIDEO = { mission: 'place_mission', soma: 'place_soma', bank: 'place_bank', transamerica: 'place_transamerica',
+  chinatown: 'place_chinatown', lombard: 'place_lombard', wharf: 'place_wharf', northShore: 'place_northShore',
+  alcatraz: 'place_alcatraz', goldenGate: 'place_goldenGate', bayBridge: 'place_bayBridge',
+  marin: 'place_goldenGate', oakland: 'place_bayBridge', openBay: 'place_alcatraz' };
+const shuffled = arr => [...arr].sort(() => Math.random() - 0.5);
+let playedVideos = new Set();
+function pickStoryVideo(decisions) {
+  const counts = {};
+  for (const d of decisions) { const v = PLACE_VIDEO[d.c.node]; if (v) counts[v] = (counts[v] || 0) + 1; }
+  const byPlace = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || Math.random() - 0.5);
+  const first = S.scene % 2 === 0 ? [...byPlace, ARC_HINT[S.scene]] : [ARC_HINT[S.scene], ...byPlace];   // alternate place / plot
+  const order = [S.scene === 1 ? 'arc_planning' : null, ...first,
+                 ...shuffled(ARC_VIDEO), ...shuffled([...new Set(Object.values(PLACE_VIDEO))])].filter(Boolean);
+  return order.find(v => !playedVideos.has(v)) || pick(order);
+}
 const cutQueue = [], cutWaiters = [];
 let cutShowing = false, cutTimer = null, cutsThisScene = 0;
 function queueCutscene(file, title, caption) {
   cutQueue.push({ file, title, caption });
+  playedVideos.add(file);
   cutsThisScene++;
   logCutscene(title);
   addRow({ kind: 'cutscene', speaker: 'Cutscene', action: title, said: caption, note: `video/${file}.mp4` });
@@ -1616,6 +1634,7 @@ function resetRun() {
   S.token++;
   S.runId = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
   clearCutscenes();
+  playedVideos = new Set();
   Object.assign(S, { scene: 0, heat: 0, loot: 0, events: [], event: '', roadblocks: new Set(), pendingTips: [], feed: [], rows: [], step: 0, ending: null, tipCutShown: false,
                      twist: pick(RUN_TWISTS), lang: $('lang').value,
                      situation: 'Night before the job. At the Mission District hideout the crew spreads a map on the table. The target is Bank of the Bay, right next to the Transamerica Pyramid, where a big cash delivery arrives tonight. Nobody has agreed yet on roles, shares or escape routes.' });
@@ -1813,7 +1832,7 @@ function applyOutcome(res, decisions) {
   if (dl > 0 && lootBefore === 0) queueCutscene('heist', `The crew hits Bank of the Bay: ${money(dl)}`, narration);
   for (const [file, title, caption] of cuts) queueCutscene(file, title, caption);
   // No big moment this scene? Then the story video for this part of the plot, with what happened as subtitles
-  if (!cutsThisScene) queueCutscene(SCENE_VIDEO[Math.min(S.scene, 10) - 1], `Scene ${S.scene} · ${SCENE_ARC[S.scene - 1]}`, narration);
+  if (!cutsThisScene) queueCutscene(pickStoryVideo(decisions), `Scene ${S.scene} · ${SCENE_ARC[S.scene - 1]}`, narration);
   addRow({ kind: 'narration', speaker: 'Narrator', said: narration, note: changes.join('; '),
            status_after: characters.map(c => `${c.name}=${c.status}`).join(' ') });
   renderMeters(); renderMembers();
@@ -2038,11 +2057,11 @@ $('voiceChk').addEventListener('change', e => {
   voiceNote('');
 });
 // Load the images in the background so cutscenes appear instantly
-const CUT_FILES = ['heist', 'betrayal_tip', 'betrayal_exposed', ...new Set(SCENE_VIDEO),
+const CUT_FILES = ['heist', 'betrayal_tip', 'betrayal_exposed', ...ARC_VIDEO, ...new Set(Object.values(PLACE_VIDEO)),
   ...CREW.flatMap(c => ['arrest_' + c.id, ...EXITS.map(x => `escape_${c.id}_${x}`)])];
 setTimeout(() => CUT_FILES.forEach(f => {
   const i = new Image(); i.src = `img/cutscenes/${f}.jpg`;
-  fetch(`video/${f}.mp4`).catch(() => {});   // about 300 KB each, so they start instantly later
+  fetch(`video/${f}.mp4`).catch(() => {});   // about 1.6 MB each; loading them early lets them start instantly later
 }), 1500);
 $('speed').addEventListener('input', e => { speed = parseFloat(e.target.value); $('speedVal').textContent = `${speed}×`; });
 routesChk.addEventListener('change', () => characters.forEach(c => { if (c.routeLine) c.routeLine.visible = routesChk.checked; }));
