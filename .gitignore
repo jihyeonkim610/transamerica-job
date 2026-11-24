@@ -10,3 +10,6 @@ logs/queries
 # Local database built by the Bruin pipeline (rebuilt from data/runs any time)
 data/*.duckdb
 data/*.duckdb.wal
+
+# Full-size videos straight from Runware (the page uses the smaller copies in video/)
+video/raw/

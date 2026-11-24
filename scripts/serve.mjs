@@ -9,7 +9,8 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = Number(process.env.PORT) || 8124;
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',
-                '.jpg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.json': 'application/json', '.csv': 'text/csv' };
+                '.jpg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.json': 'application/json', '.csv': 'text/csv',
+                '.mp4': 'video/mp4' };
 
 // Run logs saved from the page on this computer land in data/demo-runs/ (demo runs, no AI).
 // Real AI runs from claude.ai go in data/runs/ (update-trust.ps1 moves them there from Downloads).

@@ -21,6 +21,15 @@ After each run, a Bruin pipeline works out who betrayed whom and which escape ro
 | <img src="img/portraits/sunny.jpg" width="56" alt="Sunny"> | **Sunny** | Hacker | Only cares about money and keeps pushing for a bigger share |
 | <img src="img/portraits/mint.jpg" width="56" alt="Mint"> | **Mint** | Infiltrator | **Secretly a police informant.** Only Mint knows |
 
+### Character sheets
+
+Front, side and back views of each character, generated together in one image so the look stays the same everywhere (Runware).
+
+![Ruby character sheet](img/sheets/ruby.jpg)
+![Sky character sheet](img/sheets/sky.jpg)
+![Sunny character sheet](img/sheets/sunny.jpg)
+![Mint character sheet](img/sheets/mint.jpg)
+
 ## What it does
 
 - **3D city:** Golden Gate Bridge, Bay Bridge, Transamerica Pyramid, Lombard Street, Fisherman's Wharf, Alcatraz and the Mission District, built from simple shapes in Three.js
@@ -28,7 +37,7 @@ After each run, a Bruin pipeline works out who betrayed whom and which escape ro
 - **Join the crew:** pick a character under **Play as** and decide for them on their turn; the AI crew hears you as that character and reacts
 - **A different ending every run:** a hidden twist per run, random world events (fog, traffic, a police helicopter), dice rolls, and the memory of earlier endings
 - **Speech bubbles and voices:** every character speaks its lines in its own voice
-- **Cutscenes:** arrests, escapes, the betrayal and the heist each pop up as an image (pre-generated with Runware)
+- **10-second story videos:** after every scene a short video plays with the narrator's account as subtitles; arrests, escapes, the betrayal and the heist each get their own video, other scenes get the video for that part of the plot (25 videos made with Runware image-to-video, using each still as both the first and last frame so the characters stay consistent)
 - **Decision log:** who decided what and why, saved as CSV
 - **Memory and learning:** a Bruin pipeline loads past logs into DuckDB, builds a trust table and escape-route statistics, and hands them to the agents as memory
 
@@ -146,20 +155,25 @@ Open http://localhost:8124. Demo runs that finish here are saved to `data/demo-r
    It moves the logs from Downloads into `data/runs/`, runs the Bruin pipeline, and prints the trust table, escape success rates and police hotspots.
 3. On the page, click **Load trust.json** next to **Trust from past runs** and pick `trust.json` from this folder.
 
-### Regenerate images (Runware)
+### Regenerate images and videos (Runware)
 ```powershell
-node scripts/generate-images.mjs                     # only missing images
+node scripts/generate-images.mjs                     # only missing images (portraits, sheets, stills)
 node scripts/generate-images.mjs --test              # one portrait (Ruby) to check the key
 node scripts/generate-images.mjs --only=arrest_sky   # redo one image
-node scripts/generate-images.mjs --redo              # redo everything (costs credits)
+node scripts/generate-videos.mjs                     # 10-second videos for stills that don't have one yet
+node scripts/generate-videos.mjs --test              # one video (the heist), about $0.30
 ```
+Videos are made at 1024×576 and then shrunk with ffmpeg to the small copies in `video/` (about 300 KB each).
 
 ## Project layout
 
 ```
 index.html                  The whole game page (map, agents, log, voices, cutscenes)
 img/portraits/              4 character portraits
-img/cutscenes/              19 cutscenes
+img/sheets/                 4 character sheets (front, side, back)
+img/cutscenes/              25 stills, the first frame of each story video
+video/                      25 ten-second story videos
+scripts/generate-videos.mjs Runware image-to-video
 scripts/serve.mjs           Local preview server
 scripts/generate-images.mjs Runware image generation
 pipelines/trust/            Bruin pipeline

@@ -109,7 +109,8 @@
     padding: 16px calc(390px + env(safe-area-inset-right, 0px)) 120px calc(330px + env(safe-area-inset-left, 0px)); }
   .cut figure { pointer-events: auto; margin: 0; width: min(640px, 100%); background: var(--panel); border: 1px solid var(--line);
     border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,.4); cursor: pointer; animation: cutIn .45s ease-out; }
-  .cut img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #0b1a24; }
+  .cut img, .cut video { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #0b1a24; }
+  .cut figure { width: min(720px, 100%); }
   .cut figcaption { padding: 10px 14px 12px; display: grid; gap: 4px; }
   .cut .ct { font: 700 16px/1.25 var(--display); }
   .cut .cc { font-size: 13px; line-height: 1.45; color: var(--muted); }
@@ -305,6 +306,7 @@
 <div id="cutscene" class="cut" hidden>
   <figure id="cutFig" title="Click to skip">
     <img id="cutImg" alt="">
+    <video id="cutVid" muted playsinline preload="auto" hidden></video>
     <figcaption>
       <span class="ct" id="cutTitle"></span>
       <span class="cc" id="cutCap"></span>
@@ -1062,18 +1064,33 @@ const langName = () => S.lang === 'ko' ? 'Korean (한국어)' : 'English';
 const d20 = () => 1 + Math.floor(Math.random() * 20);
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 
-/* --- Cutscenes: pre-made Runware images shown for big moments (arrest, escape, betrayal, the heist) --- */
-const CUT_SECONDS = 5;
+/* --- Story videos: pre-made 10-second Runware videos (image-to-video from each still, see
+   scripts/generate-videos.mjs). Big moments get their own video; every other scene gets the video
+   for that part of the plot. If a video can't play, its still is shown for 5 seconds instead. --- */
+const CUT_SECONDS = 5, VIDEO_SECONDS = 10;
+const SCENE_VIDEO = ['arc_planning', 'arc_scouting', 'arc_prep', 'heist', 'arc_chase',
+                     'arc_split', 'arc_chase', 'arc_distrust', 'arc_split', 'arc_chase'];
 const cutQueue = [], cutWaiters = [];
-let cutShowing = false, cutTimer = null;
+let cutShowing = false, cutTimer = null, cutsThisScene = 0;
 function queueCutscene(file, title, caption) {
   cutQueue.push({ file, title, caption });
+  cutsThisScene++;
   logCutscene(title);
-  addRow({ kind: 'cutscene', speaker: 'Cutscene', action: title, said: caption, note: `img/cutscenes/${file}.jpg` });
+  addRow({ kind: 'cutscene', speaker: 'Cutscene', action: title, said: caption, note: `video/${file}.mp4` });
   if (!cutShowing) nextCutscene();
+}
+function showStill(file) {
+  const vid = $('cutVid');
+  vid.pause(); vid.hidden = true; $('cutImg').hidden = false;
+  $('cutImg').src = `img/cutscenes/${file}.jpg`;
+  clearTimeout(cutTimer);
+  cutTimer = setTimeout(nextCutscene, CUT_SECONDS * 1000);
 }
 function nextCutscene() {
   clearTimeout(cutTimer);
+  const vid = $('cutVid');
+  vid.onended = vid.onerror = null;
+  vid.pause();
   const next = cutQueue.shift();
   if (!next) {
     cutShowing = false; $('cutscene').hidden = true;
@@ -1081,11 +1098,17 @@ function nextCutscene() {
     return;
   }
   cutShowing = true;
-  $('cutImg').src = `img/cutscenes/${next.file}.jpg`;
   $('cutTitle').textContent = next.title;
   $('cutCap').textContent = next.caption || '';
   $('cutscene').hidden = false;
-  cutTimer = setTimeout(nextCutscene, CUT_SECONDS * 1000);
+  // Play the 10-second video; fall back to the still if it can't play
+  $('cutImg').hidden = true; vid.hidden = false;
+  vid.onended = () => nextCutscene();
+  vid.onerror = () => showStill(next.file);
+  vid.src = `video/${next.file}.mp4`;
+  vid.currentTime = 0;
+  vid.play().catch(() => showStill(next.file));
+  cutTimer = setTimeout(nextCutscene, (VIDEO_SECONDS + 1.5) * 1000);   // safety net if "ended" never fires
 }
 /* --- Voices: each character speaks their lines in their own voice ---
    On claude.ai: Claude's built-in voices (the "tts" capability).
@@ -1569,6 +1592,7 @@ async function playScene(token) {
   // 1. The world: a random event, and police react to earlier tips and heat
   S.event = pick(WORLD_EVENTS.filter(e => !S.events.includes(e)));
   S.events.push(S.event);
+  cutsThisScene = 0;
   if (S.scene > 1) policeReact();
   logScene();
   logEvent(`World event: ${S.event}`);
@@ -1642,6 +1666,7 @@ async function playScene(token) {
   const res = await resolve(decisions, isLast ? 'final' : 'scene', token);
   if (token !== S.token || !res) return true;
   applyOutcome(res, decisions);
+  setBusy(cutShowing ? 'Story video playing… click it to skip' : '');
   await cutscenesDone();
   if (token !== S.token) return true;
   S.feed.push(...decisions.map(d => `Scene ${S.scene}: ${d.c.name} said "${d.say}" and ${d.action || 'acted'} (went to ${placeName(d.c.node)}).`));
@@ -1708,6 +1733,8 @@ function applyOutcome(res, decisions) {
   logNarration(narration, changes, dh, dl);
   if (dl > 0 && lootBefore === 0) queueCutscene('heist', `The crew hits Bank of the Bay: ${money(dl)}`, narration);
   for (const [file, title, caption] of cuts) queueCutscene(file, title, caption);
+  // No big moment this scene? Then the story video for this part of the plot, with what happened as subtitles
+  if (!cutsThisScene) queueCutscene(SCENE_VIDEO[Math.min(S.scene, 10) - 1], `Scene ${S.scene} · ${SCENE_ARC[S.scene - 1]}`, narration);
   addRow({ kind: 'narration', speaker: 'Narrator', said: narration, note: changes.join('; '),
            status_after: characters.map(c => `${c.name}=${c.status}`).join(' ') });
   renderMeters(); renderMembers();
@@ -1931,9 +1958,12 @@ $('voiceChk').addEventListener('change', e => {
   voiceNote('');
 });
 // Load the images in the background so cutscenes appear instantly
-const CUT_FILES = ['heist', 'betrayal_tip', 'betrayal_exposed',
+const CUT_FILES = ['heist', 'betrayal_tip', 'betrayal_exposed', ...new Set(SCENE_VIDEO),
   ...CREW.flatMap(c => ['arrest_' + c.id, ...EXITS.map(x => `escape_${c.id}_${x}`)])];
-setTimeout(() => CUT_FILES.forEach(f => { const i = new Image(); i.src = `img/cutscenes/${f}.jpg`; }), 1500);
+setTimeout(() => CUT_FILES.forEach(f => {
+  const i = new Image(); i.src = `img/cutscenes/${f}.jpg`;
+  fetch(`video/${f}.mp4`).catch(() => {});   // about 300 KB each, so they start instantly later
+}), 1500);
 $('speed').addEventListener('input', e => { speed = parseFloat(e.target.value); $('speedVal').textContent = `${speed}×`; });
 routesChk.addEventListener('change', () => characters.forEach(c => { if (c.routeLine) c.routeLine.visible = routesChk.checked; }));
 $('resetBtn').addEventListener('click', () => {

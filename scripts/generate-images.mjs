@@ -69,6 +69,27 @@ JOBS.push({ id: 'heist', dir: 'cutscenes', file: 'heist.jpg', w: 1024, h: 576, s
   prompt: `${STYLE}. Cinematic wide shot: ${crewLine}, rushing out of a classical stone bank with columns at night carrying duffel bags, `
         + 'the white Transamerica Pyramid right next to it, alarm light glowing red, exciting caper movie moment' });
 
+// Character sheets: front, side and back in ONE image, so the outfit and hair match across the three views.
+// They are the reference for how each character looks everywhere else.
+for (const [id, c] of Object.entries(CREW)) {
+  JOBS.push({ id: `sheet_${id}`, dir: 'sheets', file: `${id}.jpg`, w: 1536, h: 640, seed: c.seed + 5,
+    prompt: `${STYLE}. Character model sheet of ${c.look}. Three full-body views of the SAME character side by side on a plain light gray background: `
+          + 'front view on the left, side view (profile, facing right) in the middle, back view on the right. Same outfit, same hair, same colors in all three views, '
+          + 'neutral standing pose, arms relaxed, even studio lighting, clean turnaround reference sheet' });
+}
+// Story stills: one per part of the plot, used as the first frame of the 10-second story videos
+const ARC = {
+  arc_planning: `the four-person crew (${crewLine}) leaning over a big paper map of San Francisco on a table in a cozy Mission District hideout at night, warm desk lamp, plotting`,
+  arc_scouting: `${CREW.ruby.look} and ${CREW.mint.look} watching a classical stone bank with columns from across the street at night, the white Transamerica Pyramid beside it, casing the target`,
+  arc_prep: `${CREW.sunny.look} typing fast on a glowing laptop in the back of a dark van while ${CREW.sky.look} grips the steering wheel nervously, city lights outside, final preparations`,
+  arc_chase: 'a small getaway car racing down a steep San Francisco hill at night with cable car tracks, two police cars with flashing red and blue lights chasing it, dramatic car chase',
+  arc_split: `the four-person crew (${crewLine}) splitting up at a foggy San Francisco intersection at night, each running a different way under streetlights`,
+  arc_distrust: `${CREW.ruby.look} angrily pointing at ${CREW.mint.look} in a rainy alley at night while the others watch, tense argument, trust breaking`,
+};
+for (const [id, scene] of Object.entries(ARC)) {
+  JOBS.push({ id, dir: 'cutscenes', file: `${id}.jpg`, w: 1024, h: 576, seed: 6000 + Object.keys(ARC).indexOf(id), prompt: `${STYLE}. Cinematic wide shot: ${scene}` });
+}
+
 // ---------- 4. Ask Runware for one image and save it ----------
 async function generate(job) {
   const body = [{
