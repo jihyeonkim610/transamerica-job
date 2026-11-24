@@ -10,7 +10,8 @@ After each run, a Bruin pipeline works out who betrayed whom and which escape ro
 | | Link | What you get |
 |---|---|---|
 | **With the AI crew** | [claude.ai/artifact/31isQgQnJaU9nVwsZ6LteU](https://claude.ai/artifact/31isQgQnJaU9nVwsZ6LteU) | The full game. Open it in Chrome or Edge while signed in to Claude; the agents run on your own Claude account. Pick a character under **Play as** to join the crew yourself. |
-| **Demo mode, no sign-in** | [jihyeonkim610.github.io/transamerica-job](https://jihyeonkim610.github.io/transamerica-job/) | The 3D city, characters, cutscenes and decision log, with random decisions instead of AI. |
+| **Demo mode, no sign-in** | [transamerica-job.onrender.com](https://transamerica-job.onrender.com) | Live on Render: the 3D city, characters, story videos and decision log, with random decisions instead of AI. |
+| **Demo mode (mirror)** | [jihyeonkim610.github.io/transamerica-job](https://jihyeonkim610.github.io/transamerica-job/) | The same demo on GitHub Pages. |
 
 ## The crew
 
@@ -95,6 +96,27 @@ Every asset has an owner, tags, column descriptions and primary keys, and **94 q
 - only the informant ever texts the police, and only exits produce escapes (custom checks)
 
 The repository is also connected to Bruin Cloud, where the catalog, lineage and governance scores are visible.
+
+## Built with Runware: consistent characters, images and video
+
+Every image and video in the game was generated with the [Runware](https://runware.ai) API from two scripts, `scripts/generate-images.mjs` and `scripts/generate-videos.mjs`. The API key stays in `.env` on the developer's machine and never reaches the page.
+
+| What | Runware model / feature | Count | How it is used in the game |
+|---|---|---|---|
+| Character portraits | FLUX.1 [dev] (`runware:101@1`), `imageInference`, 512×512 | 4 | Next to every speech bubble and on the crew cards |
+| Character sheets (front, side, back) | FLUX.1 [dev], 1536×640 | 4 | The reference look for each character |
+| Story stills | FLUX.1 [dev], 1024×576 | 36 | First frame of each story video; shown if a video can't play |
+| 10-second story videos | LTX-2.3 Fast (`lightricks:ltx@2.3-fast`), `videoInference`, image-to-video, 10 s, 24 fps | 36 | One plays after every scene: arrests, escapes (per character × exit), the betrayal and the heist each have their own; other scenes show the place the crew went to or the stage of the plot |
+
+**Keeping the characters consistent**
+- One shared art-style prompt for everything, plus a fixed written description and a fixed seed per character.
+- Character sheets draw the front, side and back views in a single image, so the outfit and hair match across views.
+- Videos are image-to-video from those stills, uploaded with `mediaStorage` and passed as **both the first and the last frame** (`inputs.frameImages`), so characters can't drift into someone else during the 10 seconds. Place shots contain no people at all.
+
+**Pipeline details**
+- Video tasks run with `deliveryMethod: "async"` and are polled with `getResponse`; four run in parallel, about 50 s each.
+- `includeCost: true` on every task: images cost $0.003 to $0.006 each, videos $0.30 each; the whole set (44 images and 36 videos, plus two test videos) cost about $11.
+- Videos are re-encoded with ffmpeg (H.264, CRF 20) to about 1.6 MB each for the web; originals stay local.
 
 ## Trust score rules
 

@@ -954,7 +954,34 @@ function showThinking(c) {
   body.append(who, txt); c.bubbleEl.classList.add('thinking'); c.bubbleEl.style.opacity = '1';
   c.bubbleUntil = clockT + 120;
 }
-function hideBubble(c) { c.bubbleEl.style.opacity = '0'; c.bubbleUntil = 0; }
+function hideBubble(c) { c.bubbleEl.style.opacity = '0'; c.bubbleUntil = 0; c.bubbleDy = 0; c.bubbleEl.style.translate = ''; }
+
+// Keep speech bubbles from covering each other: every frame, bubbles that overlap on screen are
+// stacked upward (the lowest stays put, the others slide up above it). Movement is eased so it doesn't jitter.
+function layoutBubbles() {
+  const items = characters.filter(c => c.bubbleEl.style.opacity === '1').map(c => {
+    const r = c.bubbleEl.getBoundingClientRect(), dy = c.bubbleDy || 0;
+    return { c, left: r.left, right: r.right, top: r.top - dy, bottom: r.bottom - dy };   // position without our shift
+  });
+  // Lowest bubble first, but keep last frame's order unless positions differ clearly (stops bubbles swapping places)
+  items.sort((a, b) => Math.abs(b.bottom - a.bottom) > 40 ? b.bottom - a.bottom : (a.c.stackRank ?? 0) - (b.c.stackRank ?? 0));
+  items.forEach((it, i) => { it.c.stackRank = i; });
+  const placed = [];
+  for (const it of items) {
+    let top = it.top, bottom = it.bottom;
+    for (let pass = 0, moved = true; moved && pass < 8; pass++) {
+      moved = false;
+      for (const p of placed) {
+        if (it.left < p.right + 6 && it.right > p.left - 6 && top < p.bottom + 6 && bottom > p.top - 6) {
+          const shift = (p.top - 6) - bottom; top += shift; bottom += shift; moved = true;
+        }
+      }
+    }
+    placed.push({ left: it.left, right: it.right, top, bottom });
+    it.c.bubbleDy = top - it.top;   // apply right away so no frame ever shows two bubbles on top of each other
+    it.c.bubbleEl.style.translate = `0 ${it.c.bubbleDy.toFixed(1)}px`;
+  }
+}
 
 // Send a character walking (or sailing) along the shortest route to a place
 function walkTo(c, target) {
@@ -2142,6 +2169,7 @@ function tick() {
   controls.update();
   renderer.render(scene, camera);
   labelRenderer.render(scene, camera);
+  layoutBubbles();
   requestAnimationFrame(tick);
 }
 tick();
