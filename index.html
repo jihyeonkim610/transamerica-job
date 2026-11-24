@@ -99,6 +99,17 @@
   .tf .hint { text-transform: none; letter-spacing: 0; font-weight: 400; }
   .tf input, .tf select { font: 400 14px/1.3 var(--body); text-transform: none; letter-spacing: 0; color: var(--ink);
     background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; min-width: 0; width: 100%; box-sizing: border-box; }
+  .saybox { border: 0; margin: 0; padding: 0; display: grid; gap: 6px; min-width: 0; }
+  .saybox legend { padding: 0; margin-bottom: 4px; }
+  .saybox .linkbtn { justify-self: start; }
+  .sayopts { display: grid; gap: 6px; }
+  .sayopt { text-align: left; font: 500 14px/1.35 var(--body); color: var(--ink); background: var(--panel-2);
+    border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; cursor: pointer; }
+  .sayopt:hover { border-color: var(--muted); }
+  .sayopt[aria-checked="true"] { border: 2px solid var(--accent); padding: 7px 9px; }
+  .sayopt .tone { display: block; font: 500 10px/1.2 var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 2px; }
+  .sayloading { font: 500 12px/1.4 var(--mono); color: var(--muted); padding: 6px 0; }
+  .turn button[type="submit"]:disabled { opacity: .45; cursor: default; }
   .tcols { display: grid; grid-template-columns: 1fr 1fr 90px; gap: 8px; }
   #tTipBox { grid-template-columns: 2fr 1fr; }
   @media (max-width: 1100px) { .turn { right: calc(330px + env(safe-area-inset-right, 0px)); } }
@@ -284,7 +295,11 @@
     <ul class="turn-heard" id="turnHeard"></ul>
     <p class="turn-secret" id="turnSecret" hidden>Only you know this: you're secretly working with the SFPD. The crew has no idea.</p>
     <details id="turnMemory" hidden><summary>What you remember from past runs</summary><p id="turnMemoryText"></p></details>
-    <label class="tf" for="tSay">Say <input id="tSay" maxlength="160" required autocomplete="off" placeholder="What do you say to the crew?"></label>
+    <fieldset class="saybox">
+      <legend class="tf">What do you say to the crew?</legend>
+      <div id="tSayOpts" class="sayopts" role="radiogroup" aria-label="What you say to the crew"></div>
+      <button type="button" id="tMoreLines" class="linkbtn">Show other lines</button>
+    </fieldset>
     <label class="tf" for="tDo">Do <input id="tDo" maxlength="120" autocomplete="off" placeholder="What do you do? (optional)"></label>
     <div class="tcols">
       <label class="tf" for="tGo">Go to <select id="tGo"></select></label>
@@ -297,7 +312,7 @@
     </div>
     <label class="tf" for="tWhy">Why <span class="hint">(only you and the log see this)</span> <input id="tWhy" maxlength="160" autocomplete="off" placeholder="Optional"></label>
     <div class="row">
-      <button type="submit" class="btn primary">Decide</button>
+      <button type="submit" id="tDecide" class="btn primary" disabled>Decide</button>
       <button type="button" id="tAuto" class="btn">Let AI decide this time</button>
     </div>
   </form>
@@ -1192,14 +1207,78 @@ function playerDecision(c, thisScene) {
     fillPlaces($('tExit'), EXITS, c.last?.escape_exit || 'openBay');
     fillPlaces($('tTipLoc'), PICKABLE, 'none', ['none', 'Nowhere']);
     $('tShare').value = c.share;
-    for (const id of ['tSay', 'tDo', 'tWhy', 'tTip']) $(id).value = '';
+    for (const id of ['tDo', 'tWhy', 'tTip']) $(id).value = '';
     $('turn').hidden = false;
-    $('tSay').focus();
+    turnCtx = { c, thisScene };
+    loadLineOptions();
   });
 }
+// Lines to choose from: the AI writes 4 options in the character's own voice, each with a different intent.
+// Without AI (demo mode) they come from the character's stock lines.
+let chosenLine = '', turnCtx = null, linesToken = 0;
+function linesPrompt(c, thisScene) {
+  const heard = thisScene.length ? thisScene.join('\n') : '(nobody has spoken yet this scene)';
+  const recent = S.feed.slice(-6).join('\n') || '(nothing yet)';
+  return `Write dialogue options for a player who controls ${c.name}, the ${c.title}, in a PG-13 heist story in San Francisco.
+${c.name}'s personality: ${c.persona}
+${c.name}'s voice: ${c.speech}
+${c.role === 'infiltrator' ? 'Secret: Mint is a police informant; the crew does not know. Options must not reveal it out loud.\n' : ''}
+Scene ${S.scene} of ${MAX_SCENES}. Situation: ${S.situation} ${S.event}
+Police heat ${S.heat}/100. Money taken: ${money(S.loot)}.
+Recently: ${recent}
+Said so far this scene:
+${heard}
+${trustHeadline() ? `Crew history: ${trustHeadline()}.` : ''}
+
+Give 4 different things ${c.name} could say out loud right now, each with a different intent:
+1. go along with the plan or take charge, 2. play it safe, 3. something bold or risky, 4. ${c.role === 'hacker' ? 'push for more money' : c.role === 'infiltrator' ? 'quietly steer the crew (while keeping the secret)' : 'call someone out or show doubt'}.
+Each line: 1 or 2 short spoken sentences, max 20 words, natural like a real person in a tense moment, reacting to what was just said. No stage directions, no quotation marks.
+Write the lines in ${langName()}${S.lang === 'ko' ? ' (casual spoken 반말 between crew members)' : ''}; write "tone" in English, 1 to 3 words.
+Reply with only JSON: {"options": [{"tone": "take charge", "line": "..."}, ...]}`;
+}
+function stockLines(c) {
+  return [...DEMO_LINES[c.role]].sort(() => Math.random() - 0.5).slice(0, 4).map(line => ({ tone: '', line }));
+}
+function renderLineOptions(opts) {
+  const box = $('tSayOpts');
+  box.replaceChildren(...opts.map((o, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'sayopt'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', 'false');
+    if (o.tone) b.append(el('span', 'tone', o.tone));
+    b.append(document.createTextNode(o.line));
+    b.addEventListener('click', () => {
+      chosenLine = o.line;
+      box.querySelectorAll('.sayopt').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+      $('tDecide').disabled = false;
+    });
+    return b;
+  }));
+  box.querySelector('.sayopt')?.focus();
+}
+async function loadLineOptions() {
+  if (!turnCtx) return;
+  const { c, thisScene } = turnCtx;
+  const my = ++linesToken;
+  chosenLine = ''; $('tDecide').disabled = true; $('tMoreLines').disabled = true;
+  $('tSayOpts').replaceChildren(el('div', 'sayloading', sample ? `${c.name} is thinking of what to say…` : 'Picking lines…'));
+  let opts = null;
+  if (sample) {
+    try {
+      const r = await sample.json(linesPrompt(c, thisScene), { modelTier: 'quick', cache: false });
+      opts = (Array.isArray(r?.options) ? r.options : [])
+        .map(o => ({ tone: clip(o?.tone, 30), line: clip(o?.line ?? o, 200) })).filter(o => o.line).slice(0, 4);
+      if (opts.length < 2) opts = null;
+    } catch { opts = null; }   // fall back to stock lines below
+  }
+  if (my !== linesToken || !turnResolve) return;   // the turn ended or newer options were requested
+  renderLineOptions(opts || stockLines(c));
+  $('tMoreLines').disabled = false;
+}
+
 function finishTurn(value) {
   if (!turnResolve) return;
   const resolve = turnResolve; turnResolve = null;
+  turnCtx = null; linesToken++;
   $('turn').hidden = true;
   resolve(value);
 }
@@ -1208,7 +1287,7 @@ function readTurnForm() {
   const move = $('tGo').value, exit = $('tExit').value;
   const tip = $('tTip').value.trim();
   return {
-    say: $('tSay').value.trim(), action: $('tDo').value.trim() || `heads to ${placeName(move)}`,
+    say: chosenLine, action: $('tDo').value.trim() || `heads to ${placeName(move)}`,
     move_to: move, escape_exit: exit,
     escape_route: shortestPath(move, exit).filter(k => NODES[k].pick).map(placeName).join(' -> '),
     share_wanted: Number($('tShare').value), reason: $('tWhy').value.trim() || 'Decided by the player',
@@ -1946,7 +2025,8 @@ $('startBtn').addEventListener('click', startRun);
 $('stopBtn').addEventListener('click', stopRun);
 $('csvBtn').addEventListener('click', saveCsv);
 $('cutFig').addEventListener('click', nextCutscene);
-$('turnForm').addEventListener('submit', e => { e.preventDefault(); if ($('tSay').value.trim()) finishTurn(readTurnForm()); });
+$('turnForm').addEventListener('submit', e => { e.preventDefault(); if (chosenLine) finishTurn(readTurnForm()); });
+$('tMoreLines').addEventListener('click', () => loadLineOptions());
 $('tAuto').addEventListener('click', () => finishTurn('AUTO'));
 $('talkSpeed').addEventListener('input', e => { talkSpeed = parseFloat(e.target.value); $('talkSpeedVal').textContent = `${talkSpeed}×`; });
 $('loadTrustBtn').addEventListener('click', () => $('trustFile').click());
