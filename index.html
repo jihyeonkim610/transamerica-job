@@ -187,6 +187,7 @@
   #ticker .busy::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
     margin-right: 6px; vertical-align: middle; animation: pulse 1s infinite; }
   #ticker .busy:empty { display: none; }
+  #ticker .skipbtn { justify-self: start; padding: 5px 12px; font-size: 12px; border-color: var(--accent); color: var(--accent); }
   @keyframes pulse { 50% { opacity: .25; } }
   @media (prefers-reduced-motion: reduce) { #ticker .busy::before { animation: none; } }
 
@@ -280,6 +281,7 @@
   <div class="sc" id="tScene">Opening</div>
   <div class="tx" id="tText">The crew meets at their Mission District hideout. The target: Bank of the Bay, right next to the Transamerica Pyramid.</div>
   <div class="busy" id="tBusy"></div>
+  <button id="skipLine" type="button" class="btn skipbtn" hidden>Skip line ⏭</button>
 </section>
 
 <section id="turn" class="panel turn" hidden aria-label="Your turn">
@@ -1174,9 +1176,16 @@ async function speakLine(c, text) {
   const p = tts ? tts.speak([{ text: text.slice(0, 1900), voice: v.voice, rate: paceFor(v), language, id: c.id }])
                 : webSpeak(text, v, language);
   if (!p) return;
-  try { await Promise.race([p, new Promise(r => setTimeout(r, 25000))]); }   // never let one line hold the story up
+  // "Skip line" button: stops this line and moves straight on
+  const skipBtn = $('skipLine');
+  const skipped = new Promise(r => { skipLineNow = () => { stopVoices(); r(); }; });
+  skipBtn.textContent = `Skip ${c.name}'s line ⏭`;
+  skipBtn.hidden = false;
+  try { await Promise.race([p, skipped, new Promise(r => setTimeout(r, 25000))]); }   // never let one line hold the story up
   catch (e) { handleVoiceError(e); }
+  finally { skipBtn.hidden = true; skipLineNow = null; }
 }
+let skipLineNow = null;
 function handleVoiceError(e) {
   if (e?.code === 'not_granted' || e?.code === 'unavailable') {
     voicesOn = false; $('voiceChk').checked = false; $('voiceChk').disabled = true;
@@ -1679,7 +1688,7 @@ async function startRun() {
 function stopRun() {
   if (!S.running) return;
   S.token++; S.ctl?.abort(); S.running = false;
-  cancelTurn(); clearCutscenes(); stopVoices();
+  cancelTurn(); clearCutscenes(); skipLineNow?.(); stopVoices();
   characters.forEach(hideBubble); setBusy('');
   logNote('Run stopped.', '');
   addRow({ kind: 'run_stopped', speaker: 'System' });
@@ -2046,6 +2055,7 @@ $('csvBtn').addEventListener('click', saveCsv);
 $('cutFig').addEventListener('click', nextCutscene);
 $('turnForm').addEventListener('submit', e => { e.preventDefault(); if (chosenLine) finishTurn(readTurnForm()); });
 $('tMoreLines').addEventListener('click', () => loadLineOptions());
+$('skipLine').addEventListener('click', () => skipLineNow?.());
 $('tAuto').addEventListener('click', () => finishTurn('AUTO'));
 $('talkSpeed').addEventListener('input', e => { talkSpeed = parseFloat(e.target.value); $('talkSpeedVal').textContent = `${talkSpeed}×`; });
 $('loadTrustBtn').addEventListener('click', () => $('trustFile').click());
